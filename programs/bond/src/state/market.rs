@@ -1,7 +1,4 @@
-use crate::com;
-use crate::errors::BondError;
-use anchor_lang::{accounts, prelude::*};
-use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
+use anchor_lang::prelude::*;
 
 #[account]
 pub struct Market {
@@ -48,5 +45,5 @@ pub struct Market {
 
 impl Market {
     pub const LEN: usize =
-        8 + 2 + 8 + 8 + 8 + 8 + 1 + 8 + 8 + 8 + 8 + 8 + 8 + 32 + (32 * 5) + (4 + 20) + 8 + 2;
+        2 + 8 + 8 + 8 + 8 + 1 + 8 + 8 + 8 + 8 + 8 + 8 + 32 + (32 * 5) + (4 + 20) + 8 + 2;
 }

@@ -8,7 +8,8 @@
         "@project-serum/common": "^0.0.1-beta.3",
         "@project-serum/serum": "^0.13.65",
         "@solana/spl-token": "^0.3.5",
-        "@solana/web3.js": "^1.63.1"
+        "@solana/web3.js": "^1.63.1",
+        "deasync": "^0.1.28"
     },
     "devDependencies": {
         "@types/bn.js": "^5.1.0",

@@ -29,18 +29,19 @@ pub fn initialize_market(
     market_data.operator = [ctx.accounts.initializer.key(); 5];
     market_data.spread = spread;
     market_data.officer = 1;
+    msg!("bump:{:?}", bump);
     Ok(ctx.accounts.market_data.key())
 }
 #[derive(Accounts)]
-#[instruction(bump: u8,category:String)]
+#[instruction(category: String,spread: f64,bump: u8)]
 pub struct InitializeMarket<'info> {
     #[account(mut)]
     pub initializer: Signer<'info>,
     #[account(
         init,
         payer=initializer,
-        space=market::Market::LEN,
-        seeds = [b"vault_market",category.as_bytes()],
+        space=market::Market::LEN + 8,
+        seeds = [b"scale_vault_market",initializer.key().as_ref(),category.as_bytes()],
         bump,
     )]
     pub market_data: Account<'info, market::Market>,

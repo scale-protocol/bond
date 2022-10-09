@@ -21,4 +21,10 @@ pub mod bond {
     ) -> Result<Pubkey> {
         market::initialize_market(ctx, category, spread, bump)
     }
+    pub fn initialize_user_account(ctx: Context<UserAccount>, bump: u8) -> Result<Pubkey> {
+        user::initialize_user_account(ctx, bump)
+    }
+    pub fn deposit(ctx: Context<Deposit>, amount: u64, category: String) -> Result<()> {
+        user::deposit(ctx, amount, category)
+    }
 }

@@ -1,22 +1,26 @@
 import * as anchor from "@project-serum/anchor";
 import { Program } from "@project-serum/anchor";
-import { TOKEN_PROGRAM_ID, createMint, getAccount, mintTo, getOrCreateAssociatedTokenAccount, transfer } from "@solana/spl-token";
-import { Keypair, PublicKey, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js'
+import { getAccount, transfer } from "@solana/spl-token";
+import { PublicKey, } from '@solana/web3.js'
 const serumCmn = require("@project-serum/common");
 import { Bond } from "../target/types/bond";
 const BN = anchor.BN;
 const encode = anchor.utils.bytes.utf8.encode;
-import { assert } from 'chai'
-
+import { assert, expect } from 'chai';
+import initSplAccounts from "./utils";
 
 describe("bond", () => {
   const provider = anchor.AnchorProvider.env();
   // Configure the client to use the local cluster.
   anchor.setProvider(provider);
+
   const program = anchor.workspace.Bond as Program<Bond>;
+  var SPL;
 
   // let mint = new PublicKey("Bu91vdLYSmiip8fS7ijzTcFAnu3TNCUA7kfj2pRMzC9T");
-  it("Is initialized!", async () => {
+  it("test vault", async () => {
+    const SPL_ACCOUNT = await initSplAccounts({ provider: provider })
+    SPL = SPL_ACCOUNT
     const [usdcVault, usdcBump] = await PublicKey.findProgramAddress(
       [
         encode("vault_token"),
@@ -24,64 +28,96 @@ describe("bond", () => {
       ],
       program.programId
     );
-    // Generate a new wallet keypair and airdrop SOL
-    const fromWallet = Keypair.generate();
-    const connection = provider.connection;
-    const fromAirdropSignature = await connection.requestAirdrop(fromWallet.publicKey, LAMPORTS_PER_SOL);
-
-    // Wait for airdrop confirmation
-    await connection.confirmTransaction(fromAirdropSignature);
-
-    // Generate a new wallet to receive newly minted token
-    const toWallet = Keypair.generate();
-
-    // Create new token mint
-    const mint = await createMint(connection, fromWallet, fromWallet.publicKey, null, 9);
-
-    // Get the token account of the fromWallet address, and if it does not exist, create it
-    const fromTokenAccount = await getOrCreateAssociatedTokenAccount(
-      connection,
-      fromWallet,
-      mint,
-      fromWallet.publicKey
-    );
-
-    // Get the token account of the toWallet address, and if it does not exist, create it
-    const toTokenAccount = await getOrCreateAssociatedTokenAccount(connection, fromWallet, mint, toWallet.publicKey);
-
-    // Mint 1 new token to the "fromTokenAccount" account we just created
-    let signature = await mintTo(
-      connection,
-      fromWallet,
-      mint,
-      fromTokenAccount.address,
-      fromWallet.publicKey,
-      1000000000
-    );
-    console.log('mint tx:', signature);
-    // Transfer the new token to the "toTokenAccount" we just created
-    signature = await transfer(
-      connection,
-      fromWallet,
-      fromTokenAccount.address,
-      toTokenAccount.address,
-      fromWallet.publicKey,
-      50
-    );
     // Add your test here.
     const tx = await program.methods.initializeVault(usdcBump).accounts({
-      tokenMint: mint,
+      tokenMint: SPL_ACCOUNT.mint,
       vaultAccount: usdcVault,
     }).signers([]).rpc();
-    let vault_account = await getAccount(provider.connection, usdcVault)
     let [vault_pda, _] = await PublicKey.findProgramAddress([encode("scale_vault")], program.programId)
+    let vault_account = await getAccount(provider.connection, usdcVault)
     assert.isTrue(vault_account.owner.equals(vault_pda));
-    assert.isTrue(vault_account.mint.equals(mint));
+    assert.isTrue(vault_account.mint.equals(SPL_ACCOUNT.mint));
     assert.isTrue(vault_account.address.equals(usdcVault));
-    console.log("Your transaction signature", tx, vault_account, vault_pda);
+    console.log(
+      "\nvault_account:", vault_account.address.toBase58(),
+      "\nvault_account.mint:", vault_account.mint.toBase58(),
+      "\nspl token mint:", SPL_ACCOUNT.mint.toBase58(),
+      "\nvault_account_owner:", vault_account.owner.toBase58(),
+      "\namount:", vault_account.amount,
+      "\nvault_pda:", vault_pda.toBase58());
+    const xx = await transfer(
+      provider.connection,
+      SPL_ACCOUNT.fromWallet,
+      SPL_ACCOUNT.fromTokenAccount.address,
+      new PublicKey("V5apPo62k57ap6h6c5uQnX2T6scJDaXap1dwhj7xomx"),
+      SPL_ACCOUNT.fromWallet.publicKey,
+      50000000000
+    );
+    let vault_account_1 = await getAccount(provider.connection, usdcVault)
+    assert.strictEqual(vault_account_1.amount, BigInt(50000000000));
+    console.log("\ntest vault token account:", xx, "\namount:", vault_account_1.amount)
   });
-  it("market is initialized!", async () => {
 
+
+
+  it("is init market account", async () => {
+    let [market_account, bump] = await PublicKey.findProgramAddress([encode("scale_vault_market"), provider.wallet.publicKey.toBytes(), encode("BTC")], program.programId)
+    const tx = await program.methods.initializeMarket(
+      "BTC",
+      0.01,
+      bump,
+    ).accounts({
+      marketData: market_account
+    }).rpc()
+    console.log("tx:", tx, "market_account:", market_account.toBase58())
+    const account = await program.account.market.fetch(market_account)
+    console.log("market_account_data:", account)
+    assert.strictEqual(account.status.toString(), "1");
   });
+
+  it("user account is initialized!", async () => {
+    let [user_account, bump] = await PublicKey.findProgramAddress([encode("scale_user_account"), provider.wallet.publicKey.toBytes()], program.programId)
+    const tx = await program.methods.initializeUserAccount(
+      bump,
+    ).accounts({
+      userAccount: user_account
+    }).rpc()
+    console.log("tx:", tx, "user_account:", user_account.toBase58())
+    const account = await program.account.userAccount.fetch(user_account)
+    console.log("user_account_data:", account)
+    assert.strictEqual(account.positionSeedOffset.toNumber(), 0);
+  });
+
+  it("test deposit", async () => {
+    console.log("test vault token account===>:", SPL.fromTokenAccount.address.toBase58())
+
+
+    let [user_account, bump] = await PublicKey.findProgramAddress([encode("scale_user_account"), provider.wallet.publicKey.toBytes()], program.programId)
+    let [market_account, _bump] = await PublicKey.findProgramAddress([encode("scale_vault_market"), provider.wallet.publicKey.toBytes(), encode("BTC")], program.programId)
+
+    console.log(
+      "\ntokenMint", SPL.mint.toBase58(),
+      "\nuserTokenAccount:", SPL.userTokenAccount.address.toBase58(),
+      "\nuserAccount:", user_account.toBase58(),
+      "\nmarket_account:", market_account.toBase58()
+    )
+
+    const tx = await program.methods.deposit(new BN(1000000000), "BTC").accounts({
+      tokenMint: SPL.mint,
+      userTokenAccount: SPL.userTokenAccount.address,
+      userAccount: user_account,
+      vaultTokenAccount: new PublicKey("V5apPo62k57ap6h6c5uQnX2T6scJDaXap1dwhj7xomx"),
+      marketAccount: market_account,
+    }).signers([]).rpc()
+
+    const account = await program.account.userAccount.fetch(user_account)
+    console.log("user_account_data:", account)
+    assert.strictEqual(account.positionSeedOffset.toNumber(), 0);
+
+    let vault_account = await getAccount(provider.connection, new PublicKey("V5apPo62k57ap6h6c5uQnX2T6scJDaXap1dwhj7xomx"))
+    assert.strictEqual(vault_account.amount, BigInt(51000000000))
+    console.log("vault_account_amount:", vault_account.amount)
+  });
+
 });
 

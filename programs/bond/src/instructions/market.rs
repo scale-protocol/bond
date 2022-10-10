@@ -1,3 +1,4 @@
+use crate::com;
 use crate::errors::BondError;
 use crate::state::market;
 use anchor_lang::prelude::*;
@@ -18,7 +19,7 @@ pub fn initialize_market(
     market_data.transaction_rate = 0.003;
     market_data.insurance_rate = 0.0005;
     market_data.margin_rate = 1.0;
-    market_data.status = 1;
+    market_data.status = market::MarketStatus::Normal;
     market_data.vault_balance = 0.0;
     market_data.vault_full = 0;
     market_data.vault_profit_balance = 0.0;
@@ -41,7 +42,7 @@ pub struct InitializeMarket<'info> {
         init,
         payer=initializer,
         space=market::Market::LEN + 8,
-        seeds = [b"scale_vault_market",initializer.key().as_ref(),category.as_bytes()],
+        seeds = [com::MARKET_ACCOUNT_SEED,category.as_bytes()],
         bump,
     )]
     pub market_data: Account<'info, market::Market>,

@@ -9,6 +9,16 @@ const encode = anchor.utils.bytes.utf8.encode;
 import { assert, expect } from 'chai';
 import initSplAccounts from "./utils";
 
+const VAULT_TOKEN_ACCOUNT_SEED = encode("vault_token");
+
+const VAULT_TOKEN_AUTHORITY_SEED = encode("scale_vault");
+
+const USER_ACCOUNT_SEED = encode("scale_user_account");
+
+const MARKET_ACCOUNT_SEED = encode("scale_vault_market");
+
+const POSITION_ACCOUNT_SEED = encode("scale_position");
+
 describe("bond", () => {
   const provider = anchor.AnchorProvider.env();
   // Configure the client to use the local cluster.
@@ -18,12 +28,12 @@ describe("bond", () => {
   var SPL;
 
   // let mint = new PublicKey("Bu91vdLYSmiip8fS7ijzTcFAnu3TNCUA7kfj2pRMzC9T");
-  it("test vault", async () => {
+  it("test vault account init", async () => {
     const SPL_ACCOUNT = await initSplAccounts({ provider: provider })
     SPL = SPL_ACCOUNT
     const [usdcVault, usdcBump] = await PublicKey.findProgramAddress(
       [
-        encode("vault_token"),
+        VAULT_TOKEN_ACCOUNT_SEED,
         // USDC.toBuffer(),
       ],
       program.programId
@@ -33,7 +43,7 @@ describe("bond", () => {
       tokenMint: SPL_ACCOUNT.mint,
       vaultAccount: usdcVault,
     }).signers([]).rpc();
-    let [vault_pda, _] = await PublicKey.findProgramAddress([encode("scale_vault")], program.programId)
+    let [vault_pda, _] = await PublicKey.findProgramAddress([VAULT_TOKEN_AUTHORITY_SEED], program.programId)
     let vault_account = await getAccount(provider.connection, usdcVault)
     assert.isTrue(vault_account.owner.equals(vault_pda));
     assert.isTrue(vault_account.mint.equals(SPL_ACCOUNT.mint));
@@ -60,8 +70,8 @@ describe("bond", () => {
 
 
 
-  it("is init market account", async () => {
-    let [market_account, bump] = await PublicKey.findProgramAddress([encode("scale_vault_market"), provider.wallet.publicKey.toBytes(), encode("BTC")], program.programId)
+  it("test market account init", async () => {
+    let [market_account, bump] = await PublicKey.findProgramAddress([MARKET_ACCOUNT_SEED, encode("BTC")], program.programId)
     const tx = await program.methods.initializeMarket(
       "BTC",
       0.01,
@@ -71,12 +81,12 @@ describe("bond", () => {
     }).rpc()
     console.log("tx:", tx, "market_account:", market_account.toBase58())
     const account = await program.account.market.fetch(market_account)
-    console.log("market_account_data:", account)
-    assert.strictEqual(account.status.toString(), "1");
+    console.log("market_account_data:", account.status)
+    assert.strictEqual(account.vaultFull.toNumber(), 0);
   });
 
-  it("user account is initialized!", async () => {
-    let [user_account, bump] = await PublicKey.findProgramAddress([encode("scale_user_account"), provider.wallet.publicKey.toBytes()], program.programId)
+  it("test user account init", async () => {
+    let [user_account, bump] = await PublicKey.findProgramAddress([USER_ACCOUNT_SEED, provider.wallet.publicKey.toBytes()], program.programId)
     const tx = await program.methods.initializeUserAccount(
       bump,
     ).accounts({
@@ -92,8 +102,8 @@ describe("bond", () => {
     console.log("test vault token account===>:", SPL.fromTokenAccount.address.toBase58())
 
 
-    let [user_account, bump] = await PublicKey.findProgramAddress([encode("scale_user_account"), provider.wallet.publicKey.toBytes()], program.programId)
-    let [market_account, _bump] = await PublicKey.findProgramAddress([encode("scale_vault_market"), provider.wallet.publicKey.toBytes(), encode("BTC")], program.programId)
+    let [user_account, bump] = await PublicKey.findProgramAddress([USER_ACCOUNT_SEED, provider.wallet.publicKey.toBytes()], program.programId)
+    let [market_account, _bump] = await PublicKey.findProgramAddress([MARKET_ACCOUNT_SEED, encode("BTC")], program.programId)
 
     console.log(
       "\ntokenMint", SPL.mint.toBase58(),

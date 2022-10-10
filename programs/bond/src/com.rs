@@ -36,3 +36,13 @@ pub fn get_project_fund_wallet() -> Pubkey {
 pub fn get_insurance_fund_address() -> Pubkey {
     Pubkey::from_str(INSURANCE_FUND_ADDRESS).unwrap()
 }
+
+pub const VAULT_TOKEN_ACCOUNT_SEED: &[u8] = b"vault_token";
+
+pub const VAULT_TOKEN_AUTHORITY_SEED: &[u8] = b"scale_vault";
+
+pub const USER_ACCOUNT_SEED: &[u8] = b"scale_user_account";
+
+pub const MARKET_ACCOUNT_SEED: &[u8] = b"scale_vault_market";
+
+pub const POSITION_ACCOUNT_SEED: &[u8] = b"scale_position";

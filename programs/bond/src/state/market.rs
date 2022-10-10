@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-
+use num_enum::TryFromPrimitive;
 #[account]
 pub struct Market {
     /// Maximum allowable leverage ratio
@@ -16,7 +16,7 @@ pub struct Market {
     /// 1 Normal;
     /// 2. Lock the market, allow closing settlement and not open positions;
     /// 3 The market is frozen, and opening and closing positions are not allowed.
-    pub status: u8,
+    pub status: MarketStatus,
     /// Token balance of basic current fund.
     pub vault_balance: f64,
     /// Total amount of outstanding NFT bonds.
@@ -45,5 +45,12 @@ pub struct Market {
 
 impl Market {
     pub const LEN: usize =
-        2 + 8 + 8 + 8 + 8 + 1 + 8 + 8 + 8 + 8 + 8 + 8 + 32 + (32 * 5) + (4 + 20) + 8 + 2;
+        2 + 8 + 8 + 8 + 8 + (1 + 1) + 8 + 8 + 8 + 8 + 8 + 8 + 32 + (32 * 5) + (4 + 20) + 8 + 2;
+}
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, TryFromPrimitive)]
+#[repr(u8)]
+pub enum MarketStatus {
+    Normal = 1,
+    Locked,
+    Frozen,
 }

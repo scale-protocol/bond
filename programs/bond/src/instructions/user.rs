@@ -11,7 +11,8 @@ use anchor_spl::{
 pub fn initialize_user_account(ctx: Context<UserAccount>, bump: u8) -> Result<Pubkey> {
     let account = &mut ctx.accounts.user_account;
     account.authority = ctx.accounts.initializer.key();
-    account.position_seed_offset = 0;
+    // Reserve the next order number forever
+    account.position_seed_offset = 1;
     account.balance = 0.0;
     account.profit = 0.0;
     account.margin_total = 0.0;
@@ -29,7 +30,7 @@ pub struct UserAccount<'info> {
         init,
         payer=initializer,
         space=user::UserAccount::LEN + 8,
-        seeds = [b"scale_user_account",initializer.key().as_ref()],
+        seeds = [com::USER_ACCOUNT_SEED,initializer.key().as_ref()],
         bump,
     )]
     pub user_account: Account<'info, user::UserAccount>,
@@ -37,16 +38,13 @@ pub struct UserAccount<'info> {
 }
 
 pub fn deposit(ctx: Context<Deposit>, amount: u64, category: String) -> Result<()> {
+    token::transfer(ctx.accounts.into(), amount)?;
     let user_account = &mut ctx.accounts.user_account;
     let market_account = &mut ctx.accounts.market_account;
     // transfer
-    let rs = token::transfer(ctx.accounts.into(), amount);
-    match rs {
-        Ok(x) => x,
-        Err(err) => {
-            msg!("err====>{:?}", err)
-        }
-    }
+    let balance = amount as f64;
+    user_account.balance = balance;
+    market_account.vault_balance += balance;
     msg!("category:{:?}", category);
     Ok(())
 }
@@ -64,18 +62,25 @@ pub struct Deposit<'info> {
         constraint=user_token_account.amount >= amount@BondError::InsufficientBalance,
     )]
     pub user_token_account: Account<'info, TokenAccount>,
-    #[account(mut,has_one = authority@BondError::UserTransactionAccountMismatch)]
+    #[account(
+        mut,
+        has_one = authority@BondError::UserTransactionAccountMismatch,
+        seeds = [com::USER_ACCOUNT_SEED,authority.key().as_ref()],
+        bump,
+    )]
     pub user_account: Account<'info, user::UserAccount>,
     #[account(
         mut,
         token::mint=token_mint,
-        seeds = [b"vault_token"],
+        seeds = [com::VAULT_TOKEN_ACCOUNT_SEED],
         bump,
         )]
     pub vault_token_account: Account<'info, TokenAccount>,
     #[account(
         mut,
         constraint=market_account.category == category@BondError::IllegalMarketAccount,
+        seeds = [com::MARKET_ACCOUNT_SEED,category.as_bytes()],
+        bump,
     )]
     pub market_account: Account<'info, market::Market>,
     token_program: Program<'info, Token>,

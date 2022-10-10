@@ -4,11 +4,11 @@ use anchor_spl::{
     mint,
     token::{self, spl_token::instruction::AuthorityType, Mint, SetAuthority, Token, TokenAccount},
 };
+
 // the vault spl token pda account
-const VAULT_ACCOUNT_SEED: &[u8] = b"scale_vault";
 pub fn initialize_vault(ctx: Context<InitializeVault>, bump: u8) -> Result<Pubkey> {
     let (pda_vault_account, _bump) =
-        Pubkey::find_program_address(&[VAULT_ACCOUNT_SEED], ctx.program_id);
+        Pubkey::find_program_address(&[com::VAULT_TOKEN_AUTHORITY_SEED], ctx.program_id);
     token::set_authority(
         ctx.accounts.into(),
         AuthorityType::AccountOwner,
@@ -31,7 +31,7 @@ pub struct InitializeVault<'info> {
     pub initializer: Signer<'info>,
     #[account(
         init,
-        seeds = [b"vault_token"],
+        seeds = [com::VAULT_TOKEN_ACCOUNT_SEED],
         bump,
         payer=initializer,
         token::mint=token_mint,

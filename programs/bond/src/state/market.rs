@@ -1,3 +1,4 @@
+use crate::price::price;
 use anchor_lang::prelude::*;
 use num_enum::TryFromPrimitive;
 #[account]
@@ -33,6 +34,8 @@ pub struct Market {
     pub authority: Pubkey,
     /// Market operator address, with authority to operate rate, up to 5 can be set.
     pub operator: [Pubkey; 5],
+    pub pyth_price_account: Pubkey,
+    pub chianlink_price_account: Pubkey,
     /// Transaction category (token type, such as BTC, ETH)
     /// len: 4+20
     pub category: String,
@@ -42,10 +45,21 @@ pub struct Market {
     /// Market operator, 1 project party, other marks to be defined
     pub officer: u16,
 }
+pub struct Price {
+    pub buy: f64,
+    pub sell: f64,
+}
 
 impl Market {
-    pub const LEN: usize =
-        2 + 8 + 8 + 8 + 8 + (1 + 1) + 8 + 8 + 8 + 8 + 8 + 8 + 32 + (32 * 5) + (4 + 20) + 8 + 2;
+    pub const LEN: usize = 2 + 8 * 4 + (1 + 1) + 8 * 6 + 32 + (32 * 5) + 32 * 2 + (4 + 20) + 8 + 2;
+    pub fn get_price(&self, price_account_info: &AccountInfo) -> Result<Price> {
+        let p = price::get_price(price_account_info)?;
+        let spread = (p * self.spread * 100.0).round() / 100.0;
+        Ok(Price {
+            buy: p + spread,
+            sell: p - spread,
+        })
+    }
 }
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, TryFromPrimitive)]
 #[repr(u8)]

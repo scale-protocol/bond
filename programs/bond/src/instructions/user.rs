@@ -8,7 +8,7 @@ use anchor_spl::{
     token::{self, spl_token::instruction::AuthorityType, Mint, Token, TokenAccount, Transfer},
 };
 
-pub fn initialize_user_account(ctx: Context<UserAccount>, bump: u8) -> Result<Pubkey> {
+pub fn initialize_user_account(ctx: Context<UserAccount>) -> Result<Pubkey> {
     let account = &mut ctx.accounts.user_account;
     account.authority = ctx.accounts.initializer.key();
     // Reserve the next order number forever
@@ -18,11 +18,9 @@ pub fn initialize_user_account(ctx: Context<UserAccount>, bump: u8) -> Result<Pu
     account.margin_total = 0.0;
     account.margin_full_total = 0.0;
     account.margin_independent_total = 0.0;
-    msg!("bump:{:?}", bump);
     Ok(ctx.accounts.user_account.key())
 }
 #[derive(Accounts)]
-#[instruction(bump:u8)]
 pub struct UserAccount<'info> {
     #[account(mut)]
     pub initializer: Signer<'info>,
@@ -34,6 +32,13 @@ pub struct UserAccount<'info> {
         bump,
     )]
     pub user_account: Account<'info, user::UserAccount>,
+    #[account(
+        init,
+        payer=initializer,
+        space=user::PositionIndexAccount::LEN+8,
+        seeds=[com::POSITION_INDEX_ACCOUNT_SEED,initializer.key().as_ref()],bump
+    )]
+    pub position_index_account: Account<'info, user::PositionIndexAccount>,
     system_program: Program<'info, System>,
 }
 

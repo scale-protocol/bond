@@ -10,4 +10,12 @@ pub enum BondError {
     InsufficientBalance,
     #[msg("Illegal market account")]
     IllegalMarketAccount,
+    #[msg("Invalid pubkey")]
+    InvalidPubkey,
+    #[msg("can not get price from pyth.network")]
+    GetPriceFailedFromPyth,
+    #[msg("can not get price from chainlink")]
+    GetPriceFailedFromChainLink,
+    #[msg("invalid price account")]
+    InvalidPriceAccount,
 }

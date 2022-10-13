@@ -9,18 +9,19 @@ use anchor_spl::{
 pub fn initialize_vault(ctx: Context<InitializeVault>, bump: u8) -> Result<Pubkey> {
     let (pda_vault_account, _bump) =
         Pubkey::find_program_address(&[com::VAULT_TOKEN_AUTHORITY_SEED], ctx.program_id);
-    token::set_authority(
-        ctx.accounts.into(),
-        AuthorityType::AccountOwner,
-        Some(pda_vault_account),
-    )?;
     msg!(
-        "pda_vault_account: {:?} ,vault_account: {:?},bump:{:?}====>{:?}",
+        "pda_vault_account: {:?} ,vault_account: {:?},bump:{:?}owner:{:?}",
         pda_vault_account.key(),
         ctx.accounts.vault_account.key(),
         bump,
         ctx.accounts.vault_account.owner,
     );
+    token::set_authority(
+        ctx.accounts.into(),
+        AuthorityType::AccountOwner,
+        Some(pda_vault_account),
+    )?;
+
     Ok(pda_vault_account.key())
 }
 
@@ -38,7 +39,6 @@ pub struct InitializeVault<'info> {
         token::authority=initializer,
     )]
     pub vault_account: Account<'info, TokenAccount>,
-    // #[account(address=mint::USDC)]
     // #[account(address=com::get_vault_mint())]
     pub token_mint: Account<'info, Mint>,
     pub system_program: Program<'info, System>,

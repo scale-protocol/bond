@@ -1,6 +1,7 @@
 import { mintTo, getOrCreateAssociatedTokenAccount, transfer, createMint, getAccount } from "@solana/spl-token";
-import { Keypair, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js'
-
+import { Keypair, LAMPORTS_PER_SOL, PublicKey, Connection, Signer } from '@solana/web3.js'
+import * as buffer from 'buffer';
+import * as fs from 'fs';
 export default async function initSplAccounts({ provider }) {
     // Generate a new wallet keypair and airdrop SOL
     const fromWallet = Keypair.generate();
@@ -62,4 +63,70 @@ export default async function initSplAccounts({ provider }) {
         toTokenAccount: toTokenAccount,
         userTokenAccount: userTokenAccount,
     };
+}
+
+function loadLocalTokenWallet(file: string): Keypair {
+    console.log("local token wallet path:", file)
+    var wallet: Keypair;
+    try {
+        let data = fs.readFileSync(file)
+        wallet = Keypair.fromSecretKey(buffer.Buffer.from(JSON.parse(data.toString())))
+    } catch (e) {
+        wallet = Keypair.generate();
+        fs.writeFile(
+            file,
+            `[${wallet.secretKey.toString()}]`,
+            { flag: 'a' },
+            function (err) {
+                throw err;
+            }
+        )
+    }
+    return wallet;
+}
+
+async function loadLocalTokenMint(
+    file: string,
+    connection: Connection,
+    payer: Signer,
+    mintAuthority: PublicKey,
+    freezeAuthority: PublicKey | null,
+    decimals: number,): Promise<PublicKey> {
+    console.log("local token mint path:", file)
+    var mint: PublicKey;
+    try {
+        let data = fs.readFileSync(file).toString()
+        data = data.trim()
+        mint = new PublicKey(data)
+    } catch (error) {
+        mint = await createMint(connection, payer, mintAuthority, freezeAuthority, decimals);
+        fs.writeFile(file, mint.toBase58(), { flag: 'a' }, (err) => {
+            console.log(err)
+        })
+        console.log(error)
+    }
+    return mint;
+}
+async function loadLocalTokenAddress(
+    file: string,
+    connection: Connection,
+    payer: Signer,
+    mint: PublicKey,
+    owner: PublicKey
+): Promise<PublicKey> {
+    console.log("local token mint path:", file)
+    var user_token_account: PublicKey;
+    try {
+        let data = fs.readFileSync(file).toString()
+        data = data.trim()
+        user_token_account = new PublicKey(data)
+    } catch (error) {
+        let create = await getOrCreateAssociatedTokenAccount(connection, payer, mint, owner);
+        user_token_account = create.address
+        fs.writeFile(file, user_token_account.toBase58(), { flag: 'a' }, (err) => {
+            console.log(err)
+        })
+        console.log(error)
+    }
+    return user_token_account;
 }

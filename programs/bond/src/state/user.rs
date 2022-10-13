@@ -1,3 +1,5 @@
+use std::i16::MAX;
+
 use crate::com;
 use crate::errors::BondError;
 use anchor_lang::{accounts, prelude::*};
@@ -9,7 +11,7 @@ pub struct UserAccount {
     /// The position offset.
     /// This value is increased by one each time the position is opened to determine
     ///  the PDA account number of the position (this value can be used as the order number).
-    pub position_seed_offset: u64,
+    pub position_seed_offset: u32,
     /// Balance of user account (maintain the deposit,
     ///  and the balance here will be deducted when the deposit used in the full position mode is deducted)
     pub balance: f64,
@@ -24,5 +26,41 @@ pub struct UserAccount {
 }
 
 impl UserAccount {
-    pub const LEN: usize = 32 + 8 + 8 + 8 + 8 + 8 + 8;
+    pub const LEN: usize = 32 + 4 + 8 + 8 + 8 + 8 + 8;
+}
+/// (1024*10-8-4-4)/4/2
+/// You can only keep so many order indexes at most.
+/// To view all orders, you need to traverse from the beginning
+const MAX_INDEX: usize = 1278;
+#[account]
+pub struct PositionIndexAccount {
+    /// Open order offset set
+    pub open_position_index: Vec<u32>,
+    /// Closed order offset set
+    pub close_position_index: Vec<u32>,
+}
+
+impl PositionIndexAccount {
+    pub const LEN: usize = (4 + 4 * MAX_INDEX) + (4 + 4 * MAX_INDEX);
+    pub fn update_index_by_close(&mut self, offset: u32) {
+        if offset <= 0 {
+            return;
+        }
+        // delete the offset item from open list
+        // and add the offset item to close list
+        self.open_position_index.retain(|&x| x != offset);
+        self.close_position_index.push(offset);
+        if self.close_position_index.len() > MAX_INDEX {
+            self.close_position_index.remove(0);
+        }
+    }
+    pub fn update_index_by_open(&mut self, offset: u32) {
+        if offset <= 0 {
+            return;
+        }
+        self.open_position_index.push(offset);
+        if self.open_position_index.len() > MAX_INDEX {
+            self.close_position_index.remove(0);
+        }
+    }
 }

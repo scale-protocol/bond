@@ -8,6 +8,8 @@ pub fn initialize_market(
     category: String,
     spread: f64,
     bump: u8,
+    pyth_price_account: String,
+    chianlink_price_account: String,
 ) -> Result<Pubkey> {
     let market_data = &mut ctx.accounts.market_data;
     if category.as_bytes().len() > 20 {
@@ -30,6 +32,16 @@ pub fn initialize_market(
     market_data.operator = [ctx.accounts.initializer.key(); 5];
     market_data.spread = spread;
     market_data.officer = 1;
+    market_data.pyth_price_account =
+        Pubkey::try_from(pyth_price_account.as_str()).map_err(|err| {
+            msg!("invalid pubkey error:{:?}", err);
+            BondError::InvalidPubkey
+        })?;
+    market_data.chianlink_price_account = Pubkey::try_from(chianlink_price_account.as_str())
+        .map_err(|err| {
+            msg!("invalid pubkey error:{:?}", err);
+            BondError::InvalidPubkey
+        })?;
     msg!("bump:{:?}", bump);
     Ok(ctx.accounts.market_data.key())
 }

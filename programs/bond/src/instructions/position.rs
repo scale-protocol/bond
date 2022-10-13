@@ -15,7 +15,18 @@ pub fn create_position(
     leverage: u64,
     position_type: u8,
     direction: u8,
-) {
+) -> Result<()> {
+    let position_account = &mut ctx.accounts.position_account;
+    let market_account = &mut ctx.accounts.market_account;
+
+    let price = market_account.get_price(&mut ctx.accounts.pyth_price_account)?;
+    let margin = match position_account.direction {
+        position::Direction::Buy => {}
+        position::Direction::Sell => {}
+    };
+
+    msg!("create position order by {:?}", category);
+    Ok(())
 }
 #[derive(Accounts)]
 #[instruction(category:String)]
@@ -40,9 +51,20 @@ pub struct CreatePosition<'info> {
         init,
         payer=authority,
         space=position::Position::LEN+8,
-        seeds=[com::POSITION_ACCOUNT_SEED,authority.key().as_ref(),market_account.key().as_ref(),user_account.position_seed_offset.to_be_bytes().as_ref()],
+        seeds=[com::POSITION_ACCOUNT_SEED,authority.key().as_ref(),market_account.key().as_ref(),user_account.position_seed_offset.to_string().as_bytes().as_ref()],
         bump,
     )]
     pub position_account: Account<'info, position::Position>,
+    #[account(
+        seeds=[com::POSITION_INDEX_ACCOUNT_SEED,authority.key().as_ref()],bump
+    )]
+    pub position_index_account: Account<'info, user::PositionIndexAccount>,
+    /// CHECK: Verify later
+    #[account(
+        constraint = market_account.pyth_price_account.key() == pyth_price_account.key()@BondError::InvalidPriceAccount,
+    )]
+    pub pyth_price_account: AccountInfo<'info>,
+    // #[account(constraint=market_account.pyth_price_account.key()==chianlink_price_account.key()@BondError::InvalidPriceAccount)]
+    // pub chianlink_price_account: AccountInfo<'info>,
     system_program: Program<'info, System>,
 }

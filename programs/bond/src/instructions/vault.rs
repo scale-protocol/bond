@@ -39,7 +39,7 @@ pub struct InitializeVault<'info> {
         token::authority=initializer,
     )]
     pub vault_account: Account<'info, TokenAccount>,
-    // #[account(address=com::get_vault_mint())]
+    // #[account(address=com::base_account::get_vault_mint())]
     pub token_mint: Account<'info, Mint>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,

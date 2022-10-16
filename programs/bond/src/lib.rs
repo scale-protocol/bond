@@ -37,14 +37,14 @@ pub mod bond {
     pub fn deposit(ctx: Context<Deposit>, amount: u64, category: String) -> Result<()> {
         user::deposit(ctx, amount, category)
     }
-    pub fn create_position(
-        ctx: Context<CreatePosition>,
+    pub fn open_position(
+        ctx: Context<OpenPosition>,
         category: String,
         size: f64,
-        leverage: u64,
+        leverage: u16,
         position_type: u8,
         direction: u8,
     ) -> Result<()> {
-        position::create_position(ctx, category, size, leverage, position_type, direction)
+        position::open_position(ctx, category, size, leverage, position_type, direction)
     }
 }

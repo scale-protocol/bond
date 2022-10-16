@@ -18,4 +18,6 @@ pub enum BondError {
     GetPriceFailedFromChainLink,
     #[msg("invalid price account")]
     InvalidPriceAccount,
+    #[msg("Illegal instruction parameter, please check it")]
+    InvalidParameterOfPosition,
 }

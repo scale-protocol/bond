@@ -52,6 +52,7 @@ pub struct Price {
 
 impl Market {
     pub const LEN: usize = 2 + 8 * 4 + (1 + 1) + 8 * 6 + 32 + (32 * 5) + 32 * 2 + (4 + 20) + 8 + 2;
+    // get current price
     pub fn get_price(&self, price_account_info: &AccountInfo) -> Result<Price> {
         let p = price::get_price(price_account_info)?;
         let spread = (p * self.spread * 100.0).round() / 100.0;

@@ -57,6 +57,7 @@ pub enum PositionType {
     Full = 1,
     Independent,
 }
+
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, TryFromPrimitive)]
 #[repr(u8)]
 pub enum PositionStatus {
@@ -65,11 +66,23 @@ pub enum PositionStatus {
     ForceClosing,
     Pending,
 }
+
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, TryFromPrimitive)]
 #[repr(u8)]
 pub enum Direction {
     Buy = 1,
     Sell,
+}
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+pub struct PositionHeader {
+    pub position_seed_offset: u32,
+    pub open_price: f64,
+    pub direction: Direction,
+    pub size: f64,
+}
+
+impl PositionHeader {
+    pub const LEN: usize = 4 + 8 + (1 + 1) + 8;
 }
 
 impl Position {

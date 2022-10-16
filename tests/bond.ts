@@ -117,11 +117,11 @@ describe("bond", () => {
 
   it("test user account init", async () => {
     let [user_account, bump] = await PublicKey.findProgramAddress([USER_ACCOUNT_SEED, provider.wallet.publicKey.toBytes()], program.programId)
-    let [position_index_account, _bump] = await PublicKey.findProgramAddress([POSITION_INDEX_ACCOUNT_SEED, provider.wallet.publicKey.toBytes()], program.programId)
+    // let [position_index_account, _bump] = await PublicKey.findProgramAddress([POSITION_INDEX_ACCOUNT_SEED, provider.wallet.publicKey.toBytes()], program.programId)
     var tx = await program.methods.initializeUserAccount(
     ).accounts({
       userAccount: user_account,
-      positionIndexAccount: position_index_account
+      // positionIndexAccount: position_index_account
     }).rpc()
     console.log("tx:", tx, "user_account:", user_account.toBase58())
     var account = await program.account.userAccount.fetch(user_account)
@@ -174,14 +174,14 @@ describe("bond", () => {
       ],
       program.programId,
     )
-    let [position_index_account, _d] = await PublicKey.findProgramAddress(
-      [
-        POSITION_INDEX_ACCOUNT_SEED,
-        provider.wallet.publicKey.toBytes(),
-      ],
-      program.programId,
-    )
-    var tx = await program.methods.createPosition(
+    // let [position_index_account, _d] = await PublicKey.findProgramAddress(
+    //   [
+    //     POSITION_INDEX_ACCOUNT_SEED,
+    //     provider.wallet.publicKey.toBytes(),
+    //   ],
+    //   program.programId,
+    // )
+    var tx = await program.methods.openPosition(
       PAIR,
       20.3,
       new BN(4),
@@ -191,7 +191,7 @@ describe("bond", () => {
       userAccount: user_account,
       marketAccount: market_account,
       positionAccount: position_account,
-      positionIndexAccount: position_index_account,
+      // positionIndexAccount: position_index_account,
       pythPriceAccount: BTC_DEVNET_ACCOUNT,
     }).rpc()
   });

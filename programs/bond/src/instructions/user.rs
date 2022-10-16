@@ -32,13 +32,6 @@ pub struct UserAccount<'info> {
         bump,
     )]
     pub user_account: Account<'info, user::UserAccount>,
-    #[account(
-        init,
-        payer=initializer,
-        space=user::PositionIndexAccount::LEN+8,
-        seeds=[com::POSITION_INDEX_ACCOUNT_SEED,initializer.key().as_ref()],bump
-    )]
-    pub position_index_account: Account<'info, user::PositionIndexAccount>,
     system_program: Program<'info, System>,
 }
 

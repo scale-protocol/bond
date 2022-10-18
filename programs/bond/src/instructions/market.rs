@@ -15,23 +15,31 @@ pub fn initialize_market(
     if category.as_bytes().len() > 20 {
         return err!(BondError::CategoryTooLong);
     }
-    market_data.category = category;
+    market_data.category = category.clone();
     market_data.max_leverage = 125;
     market_data.management_rate = 0.0004;
     market_data.transaction_rate = 0.003;
     market_data.insurance_rate = 0.0005;
-    market_data.margin_rate = 1.0;
+    market_data.margin_level = 1.0;
     market_data.status = market::MarketStatus::Normal;
-    market_data.vault_balance = 0.0;
     market_data.vault_full = 0;
+    market_data.vault_base_balance = 0.0;
     market_data.vault_profit_balance = 0.0;
-    market_data.vault_profit_balance = 0.0;
+    market_data.vault_insurance_balance = 0.0;
     market_data.long_position_total = 0.0;
     market_data.short_position_total = 0.0;
     market_data.authority = ctx.accounts.initializer.key();
     market_data.operator = [ctx.accounts.initializer.key(); 5];
     market_data.spread = spread;
-    market_data.officer = 1;
+    market_data.officer = false;
+    market_data.is_support_full_position = false;
+    if ctx.accounts.initializer.key() == com::base_account::get_team_authority() {
+        market_data.officer = true;
+        let c = com::FullPositionMarket::from(category.as_str());
+        if c != com::FullPositionMarket::None {
+            market_data.is_support_full_position = true;
+        }
+    }
     market_data.pyth_price_account =
         Pubkey::try_from(pyth_price_account.as_str()).map_err(|err| {
             msg!("invalid pubkey error:{:?}", err);

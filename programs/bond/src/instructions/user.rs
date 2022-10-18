@@ -42,7 +42,7 @@ pub fn deposit(ctx: Context<Deposit>, amount: u64, category: String) -> Result<(
     // transfer
     let balance = amount as f64;
     user_account.balance = balance;
-    market_account.vault_balance += balance;
+    market_account.vault_base_balance += balance;
     msg!("category:{:?}", category);
     Ok(())
 }

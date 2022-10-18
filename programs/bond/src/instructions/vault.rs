@@ -28,7 +28,10 @@ pub fn initialize_vault(ctx: Context<InitializeVault>, bump: u8) -> Result<Pubke
 #[derive(Accounts)]
 #[instruction(bump: u8)]
 pub struct InitializeVault<'info> {
-    #[account(mut)]
+    #[account(
+        mut,
+        address=com::base_account::get_team_authority()
+    )]
     pub initializer: Signer<'info>,
     #[account(
         init,

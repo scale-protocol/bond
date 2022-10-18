@@ -1,5 +1,6 @@
 use crate::com;
 use crate::errors::BondError;
+use crate::state::market;
 use anchor_lang::{accounts, prelude::*};
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 use num_enum::TryFromPrimitive;
@@ -17,22 +18,20 @@ pub struct Position {
     pub direction: Direction,
     /// Point difference data on which the quotation is based
     pub spread: f64,
+    // Actual quotation currently obtained
+    pub current_real_price: f64,
     /// the position size
     pub size: f64,
+    /// default is 1,Reserved in the future
+    pub lot: u64,
     // Opening quotation (expected opening price under the listing mode)
     pub open_price: f64,
-    /// Opening quotation slot
-    pub open_price_slot: u64,
     /// Closing quotation
     pub close_price: f64,
-    /// Closing quotation slot
-    pub close_price_slot: u64,
     /// Automatic profit stop price
     pub stop_surplus_price: f64,
     /// Automatic stop loss price
     pub stop_loss_price: f64,
-    /// Opening slot
-    pub position_slot: u64,
     /// Order creation time
     pub create_time: i64,
     pub open_time: i64,
@@ -51,14 +50,14 @@ pub struct Position {
     pub market_account: Pubkey,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, TryFromPrimitive)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, TryFromPrimitive, PartialEq)]
 #[repr(u8)]
 pub enum PositionType {
     Full = 1,
     Independent,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, TryFromPrimitive)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, TryFromPrimitive, PartialEq)]
 #[repr(u8)]
 pub enum PositionStatus {
     Normal = 1,
@@ -67,7 +66,7 @@ pub enum PositionStatus {
     Pending,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, TryFromPrimitive)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, TryFromPrimitive, PartialEq)]
 #[repr(u8)]
 pub enum Direction {
     Buy = 1,
@@ -79,12 +78,33 @@ pub struct PositionHeader {
     pub open_price: f64,
     pub direction: Direction,
     pub size: f64,
+    pub market: com::FullPositionMarket,
 }
 
 impl PositionHeader {
-    pub const LEN: usize = 4 + 8 + (1 + 1) + 8;
+    pub const LEN: usize = 4 + 8 + (1 + 1) + 8 + (1 + 1);
+    // Floating P/L
+    pub fn get_pl_price(&self, p: &market::Price) -> f64 {
+        match self.direction {
+            Direction::Buy => (p.sell_price - self.open_price) * self.size,
+            Direction::Sell => (self.open_price - p.buy_price) * self.size,
+        }
+    }
+    pub fn get_fund_size(&self) -> f64 {
+        self.open_price * self.size
+    }
 }
 
 impl Position {
-    pub const LEN: usize = 8 + 2 + (1 + 1) * 3 + 8 * 13 + 32 * 4;
+    pub const LEN: usize = 8 + 2 + (1 + 1) * 3 + 8 * 12 + 32 * 4;
+    // Floating P/L
+    pub fn get_pl_price(&self, p: market::Price) -> f64 {
+        match self.direction {
+            Direction::Buy => (p.sell_price - self.open_price) * self.lot as f64 * self.size,
+            Direction::Sell => (self.open_price - p.buy_price) * self.lot as f64 * self.size,
+        }
+    }
+    pub fn get_fund_size(&self) -> f64 {
+        self.open_price * self.lot as f64 * self.size
+    }
 }

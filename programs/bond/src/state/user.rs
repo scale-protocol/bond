@@ -18,7 +18,7 @@ pub struct UserAccount {
     pub balance: f64,
     /// User settled profit
     pub profit: f64,
-    /// Total amount of deposit used.
+    /// Total amount of margin used.
     pub margin_total: f64,
     /// Total amount of used margin in full warehouse mode.
     pub margin_full_total: f64,
@@ -37,23 +37,24 @@ pub struct UserAccount {
     /// Closed order offset set
     pub close_position_index: Vec<u32>,
     /// The position header being opened, which is used to calculate the account net value
-    pub open_position_header: Vec<position::PositionHeader>,
+    pub open_position_headers: Vec<position::PositionHeader>,
 }
 
-/// (1024*10-8-4-4)/4/2
 /// You can only keep so many order indexes at most.
 /// To view all orders, you need to traverse from the beginning
-const MAX_INDEX_SIZE: usize = 1278;
-///
-const MAX_OPEN_POSITION_SET_SIZE: usize = 1278;
+/// We are still determining the range of this value depending on the node calculation force and use cost
+const MAX_INDEX_SIZE: usize = 10000;
+/// Number of full warehouses allowed to be opened
+/// We are still determining the range of this value depending on the node calculation force and use cost
+const MAX_OPEN_FULL_POSITION_SET_SIZE: usize = 10000;
 
 impl UserAccount {
     pub const LEN: usize = 32
         + 4
         + 8 * 5
         + (1 + 2 + 4 + 8)
-        + (4 + 4 * MAX_INDEX_SIZE)
-        + (4 + position::PositionHeader::LEN * MAX_OPEN_POSITION_SET_SIZE);
+        + (4 + 4 * MAX_INDEX_SIZE) * 2
+        + (4 + position::PositionHeader::LEN * MAX_OPEN_FULL_POSITION_SET_SIZE);
 
     pub fn update_index_by_close(&mut self, offset: u32) {
         if offset <= 0 {

@@ -4,6 +4,8 @@ use anchor_lang::error_code;
 pub enum BondError {
     #[msg("Category does not exceed 20 bytes")]
     CategoryTooLong,
+    #[msg("invalid full position market")]
+    InvalidFullPositionMarket,
     #[msg("User transaction account mismatch")]
     UserTransactionAccountMismatch,
     #[msg("Insufficient user token account balance")]
@@ -20,4 +22,12 @@ pub enum BondError {
     InvalidPriceAccount,
     #[msg("Illegal instruction parameter, please check it")]
     InvalidParameterOfPosition,
+    #[msg("Risk control, it is not allowed to open new positions")]
+    RiskControlBlocking,
+    #[msg("Insufficient margin available")]
+    InsufficientMargin,
+    #[msg("The market does not support opening this type of position")]
+    MarketNotSupportOpenPosition,
+    #[msg("The market pauses to open new positions")]
+    MarketPauses,
 }

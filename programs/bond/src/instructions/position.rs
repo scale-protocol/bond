@@ -39,10 +39,13 @@ pub fn open_position(
             BondError::InvalidParameterOfPosition
         })?;
 
-    if position_account.position_type == position::PositionType::Full
-        && !market_account.is_support_full_position
-    {
-        return Err(BondError::MarketNotSupportOpenPosition.into());
+    if position_account.position_type == position::PositionType::Full {
+        if !market_account.is_support_full_position {
+            return Err(BondError::MarketNotSupportOpenPosition.into());
+        }
+        if user_account.open_full_position_headers.len() >= user::MAX_OPEN_FULL_POSITION_SET_SIZE {
+            return Err(BondError::FullPositionExceededLimit.into());
+        }
     }
     position_account.direction = position::Direction::try_from(direction).map_err(|err| {
         msg!("{:?}", err);
@@ -56,12 +59,13 @@ pub fn open_position(
     )?;
     let margin = match position_account.direction {
         position::Direction::Buy => com::f64_round(
-            size as f64 * price.buy_price / leverage as f64 * market_account.margin_level,
+            size as f64 * price.buy_price / leverage as f64 * market_account.margin_rate,
         ),
         position::Direction::Sell => com::f64_round(
-            size as f64 * price.sell_price / leverage as f64 * market_account.margin_level,
+            size as f64 * price.sell_price / leverage as f64 * market_account.margin_rate,
         ),
     };
+    position_account.position_seed_offset = user_account.position_seed_offset;
     position_account.margin = margin;
     position_account.position_status = position::PositionStatus::Normal;
     position_account.spread = price.spread;
@@ -87,35 +91,69 @@ pub fn open_position(
     let fund_size = position_account.get_fund_size();
     // set market data
     match position_account.direction {
-        position::Direction::Buy => market_account.long_position_total += fund_size,
-        position::Direction::Sell => market_account.short_position_total += fund_size,
+        position::Direction::Buy => {
+            market_account.long_position_total += fund_size;
+            user_account.position_full_vector += 1;
+        }
+        position::Direction::Sell => {
+            market_account.short_position_total += fund_size;
+            user_account.position_full_vector -= 1;
+        }
     };
     // Pay insurance fund
     let insurance_fund = margin * market_account.insurance_rate;
     market_account.vault_insurance_balance += insurance_fund;
     user_account.balance -= insurance_fund;
     // set user account data
+    let position_seed_offset = user_account.position_seed_offset;
+    user_account.update_index_by_open(position_seed_offset);
+    user_account.add_position_header(position::PositionHeader {
+        position_seed_offset,
+        open_price: position_account.open_price,
+        direction: position_account.direction,
+        size,
+        market: com::FullPositionMarket::from(category.as_str()),
+    })?;
+    // this is next position offset number
     user_account.position_seed_offset += 1;
+    // pay margin fund
     user_account.margin_total += margin;
     match position_account.position_type {
-        position::PositionType::Full => user_account.margin_full_total += margin,
+        position::PositionType::Full => {
+            user_account.margin_full_total += margin;
+            match position_account.direction {
+                position::Direction::Buy => user_account.margin_full_buy_total += margin,
+                position::Direction::Sell => user_account.margin_full_sell_total += margin,
+            }
+        }
         position::PositionType::Independent => {
             user_account.margin_independent_total += margin;
-            // is set??????
             user_account.balance -= margin;
+            match position_account.direction {
+                position::Direction::Buy => user_account.margin_independent_buy_total += margin,
+                position::Direction::Sell => user_account.margin_independent_sell_total += margin,
+            }
         }
     }
+    if user_account.balance < 0.0 {
+        return Err(BondError::InsufficientBalanceForUser.into());
+    }
+    // user_account.open_full_position_headers.len()
     let exposure = market_account.get_exposure();
     let total_liquidity = market_account.get_total_liquidity();
     let fund_pool = match position_account.direction {
         position::Direction::Buy => market_account.long_position_total,
         position::Direction::Sell => market_account.short_position_total,
     };
-    let margin_full_total = user_account.margin_full_total;
-
+    let margin_full_total = com::f64_round(
+        user_account
+            .margin_full_buy_total
+            .max(user_account.margin_full_sell_total),
+    );
     let user_account_equity = get_equity(ctx)?;
     // check margin
-    if margin < (user_account_equity - margin_full_total - margin) {
+    let margin_ratio = user_account_equity / margin_full_total;
+    if margin_ratio < com::BURST_RATE {
         return Err(BondError::InsufficientMargin.into());
     }
     // Risk judgment
@@ -237,7 +275,7 @@ pub fn get_pl_price_all_full_position(ctx: Context<OpenPosition>) -> Result<f64>
         &ctx.accounts.pyth_price_account_sol,
         &ctx.accounts.chainlink_price_account_sol,
     )?;
-    let headers = &ctx.accounts.user_account.open_position_headers;
+    let headers = &ctx.accounts.user_account.open_full_position_headers;
     let mut total_pl: f64 = 0.0;
     for header in headers.iter() {
         let profit_and_fund_rate: f64 = match header.market {

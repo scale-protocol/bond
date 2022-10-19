@@ -117,11 +117,9 @@ describe("bond", () => {
 
   it("test user account init", async () => {
     let [user_account, bump] = await PublicKey.findProgramAddress([USER_ACCOUNT_SEED, provider.wallet.publicKey.toBytes()], program.programId)
-    // let [position_index_account, _bump] = await PublicKey.findProgramAddress([POSITION_INDEX_ACCOUNT_SEED, provider.wallet.publicKey.toBytes()], program.programId)
     var tx = await program.methods.initializeUserAccount(
     ).accounts({
       userAccount: user_account,
-      // positionIndexAccount: position_index_account
     }).rpc()
     console.log("tx:", tx, "user_account:", user_account.toBase58())
     var account = await program.account.userAccount.fetch(user_account)
@@ -161,19 +159,19 @@ describe("bond", () => {
   });
 
   it("test open position", async () => {
-    let [user_account, _a] = await PublicKey.findProgramAddress([USER_ACCOUNT_SEED, provider.wallet.publicKey.toBytes()], program.programId)
-    let [market_account, _b] = await PublicKey.findProgramAddress([MARKET_ACCOUNT_SEED, encode(PAIR)], program.programId)
-    // let user_account_data = await getAccount(provider.connection, user_account)
-    // let user_account_data = program.account.userAccount.fetch(user_account)
-    let [position_account, _c] = await PublicKey.findProgramAddress(
-      [
-        POSITION_ACCOUNT_SEED,
-        provider.wallet.publicKey.toBytes(),
-        market_account.toBytes(),
-        encode("1")
-      ],
-      program.programId,
-    )
+    // let [user_account, _a] = await PublicKey.findProgramAddress([USER_ACCOUNT_SEED, provider.wallet.publicKey.toBytes()], program.programId)
+    // let [market_account, _b] = await PublicKey.findProgramAddress([MARKET_ACCOUNT_SEED, encode(PAIR)], program.programId)
+    // // let user_account_data = await getAccount(provider.connection, user_account)
+    // // let user_account_data = program.account.userAccount.fetch(user_account)
+    // let [position_account, _c] = await PublicKey.findProgramAddress(
+    //   [
+    //     POSITION_ACCOUNT_SEED,
+    //     provider.wallet.publicKey.toBytes(),
+    //     market_account.toBytes(),
+    //     encode("1")
+    //   ],
+    //   program.programId,
+    // )
     // let [position_index_account, _d] = await PublicKey.findProgramAddress(
     //   [
     //     POSITION_INDEX_ACCOUNT_SEED,
@@ -181,19 +179,19 @@ describe("bond", () => {
     //   ],
     //   program.programId,
     // )
-    var tx = await program.methods.openPosition(
-      PAIR,
-      20.3,
-      new BN(4),
-      1,
-      1,
-    ).accounts({
-      userAccount: user_account,
-      marketAccount: market_account,
-      positionAccount: position_account,
-      // positionIndexAccount: position_index_account,
-      pythPriceAccount: BTC_DEVNET_ACCOUNT,
-    }).rpc()
+    // var tx = await program.methods.openPosition(
+    //   PAIR,
+    //   20.3,
+    //   new BN(4),
+    //   1,
+    //   1,
+    // ).accounts({
+    //   userAccount: user_account,
+    //   marketAccount: market_account,
+    //   positionAccount: position_account,
+    //   // positionIndexAccount: position_index_account,
+    //   pythPriceAccount: BTC_DEVNET_ACCOUNT,
+    // }).rpc()
   });
 });
 

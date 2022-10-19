@@ -1,14 +1,14 @@
 use crate::com;
 use crate::errors::BondError;
 use crate::state::market;
-use crate::state::user;
+use crate::state::user::*;
 use anchor_lang::prelude::*;
 use anchor_spl::{
     mint,
-    token::{self, spl_token::instruction::AuthorityType, Mint, Token, TokenAccount, Transfer},
+    token::{self, Mint, Token, TokenAccount, Transfer},
 };
 
-pub fn initialize_user_account(ctx: Context<UserAccount>) -> Result<Pubkey> {
+pub fn initialize_user_account(ctx: Context<InitAccount>) -> Result<Pubkey> {
     let account = &mut ctx.accounts.user_account;
     account.authority = ctx.accounts.initializer.key();
     // Reserve the next order number forever
@@ -21,17 +21,17 @@ pub fn initialize_user_account(ctx: Context<UserAccount>) -> Result<Pubkey> {
     Ok(ctx.accounts.user_account.key())
 }
 #[derive(Accounts)]
-pub struct UserAccount<'info> {
+pub struct InitAccount<'info> {
     #[account(mut)]
     pub initializer: Signer<'info>,
     #[account(
         init,
         payer=initializer,
-        space=user::UserAccount::LEN + 8,
+        space= 8+UserAccount::LEN,
         seeds = [com::USER_ACCOUNT_SEED,initializer.key().as_ref()],
         bump,
     )]
-    pub user_account: Account<'info, user::UserAccount>,
+    pub user_account: Account<'info, UserAccount>,
     system_program: Program<'info, System>,
 }
 
@@ -66,7 +66,7 @@ pub struct Deposit<'info> {
         seeds = [com::USER_ACCOUNT_SEED,authority.key().as_ref()],
         bump,
     )]
-    pub user_account: Account<'info, user::UserAccount>,
+    pub user_account: Account<'info, UserAccount>,
     #[account(
         mut,
         token::mint=token_mint,

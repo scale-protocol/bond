@@ -1,10 +1,7 @@
-use std::i16::MAX;
-
-use crate::com;
 use crate::errors::BondError;
-use crate::state::position;
-use anchor_lang::{accounts, prelude::*};
-use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
+use crate::state::position::*;
+use anchor_lang::prelude::*;
+
 #[account]
 pub struct UserAccount {
     /// Account owner wallet address
@@ -24,6 +21,11 @@ pub struct UserAccount {
     pub margin_full_total: f64,
     /// Total amount of used margin in independent position mode.
     pub margin_independent_total: f64,
+    pub margin_full_buy_total: f64,
+    pub margin_full_sell_total: f64,
+    pub margin_independent_buy_total: f64,
+    pub margin_independent_sell_total: f64,
+    pub position_full_vector: u32,
     /// space for future derived values
     pub drv1: u8,
     /// space for future derived values
@@ -37,24 +39,29 @@ pub struct UserAccount {
     /// Closed order offset set
     pub close_position_index: Vec<u32>,
     /// The position header being opened, which is used to calculate the account net value
-    pub open_position_headers: Vec<position::PositionHeader>,
+    pub open_full_position_headers: Vec<PositionHeader>,
 }
 
 /// You can only keep so many order indexes at most.
 /// To view all orders, you need to traverse from the beginning
 /// We are still determining the range of this value depending on the node calculation force and use cost
-const MAX_INDEX_SIZE: usize = 10000;
+pub const MAX_INDEX_SIZE: usize = 62;
 /// Number of full warehouses allowed to be opened
 /// We are still determining the range of this value depending on the node calculation force and use cost
-const MAX_OPEN_FULL_POSITION_SET_SIZE: usize = 10000;
+pub const MAX_OPEN_FULL_POSITION_SET_SIZE: usize = 100;
 
 impl UserAccount {
+    /// MAX_INDEX_SIZE=x
+    /// MAX_OPEN_FULL_POSITION_SET_SIZE=y
+    /// 8+127+2(4+4x)+24(4+y)=1024*10
+    /// 8x+96y=10097
     pub const LEN: usize = 32
         + 4
-        + 8 * 5
+        + 8 * 9
+        + 4
         + (1 + 2 + 4 + 8)
         + (4 + 4 * MAX_INDEX_SIZE) * 2
-        + (4 + position::PositionHeader::LEN * MAX_OPEN_FULL_POSITION_SET_SIZE);
+        + (4 + PositionHeader::LEN * MAX_OPEN_FULL_POSITION_SET_SIZE);
 
     pub fn update_index_by_close(&mut self, offset: u32) {
         if offset <= 0 {
@@ -76,5 +83,16 @@ impl UserAccount {
         if self.open_position_index.len() > MAX_INDEX_SIZE {
             self.close_position_index.remove(0);
         }
+    }
+    pub fn add_position_header(&mut self, h: PositionHeader) -> Result<()> {
+        if self.open_full_position_headers.len() >= MAX_OPEN_FULL_POSITION_SET_SIZE {
+            return Err(BondError::FullPositionExceededLimit.into());
+        }
+        self.open_full_position_headers.push(h);
+        Ok(())
+    }
+    pub fn remove_position_header(&mut self, h: PositionHeader) {
+        self.open_full_position_headers
+            .retain(|x| x.position_seed_offset != h.position_seed_offset);
     }
 }

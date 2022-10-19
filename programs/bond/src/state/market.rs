@@ -14,7 +14,7 @@ pub struct Market {
     /// insurance rate
     pub insurance_rate: f64,
     /// margin rate,Current constant positioning 100%
-    pub margin_level: f64,
+    pub margin_rate: f64,
     /// Market status:
     /// 1 Normal;
     /// 2. Lock the market, allow closing settlement and not open positions;

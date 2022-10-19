@@ -20,7 +20,7 @@ pub fn initialize_market(
     market_data.management_rate = 0.0004;
     market_data.transaction_rate = 0.003;
     market_data.insurance_rate = 0.0005;
-    market_data.margin_level = 1.0;
+    market_data.margin_rate = 1.0;
     market_data.status = market::MarketStatus::Normal;
     market_data.vault_full = 0;
     market_data.vault_base_balance = 0.0;

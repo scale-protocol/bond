@@ -1,4 +1,4 @@
-use crate::com;
+use crate::com::*;
 use crate::errors::BondError;
 use crate::state::market;
 use anchor_lang::{accounts, prelude::*};
@@ -6,6 +6,7 @@ use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 use num_enum::TryFromPrimitive;
 #[account]
 pub struct Position {
+    pub position_seed_offset: u32,
     /// Initial position margin
     pub margin: f64,
     /// leverage size
@@ -66,7 +67,7 @@ pub enum PositionStatus {
     Pending,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, TryFromPrimitive, PartialEq)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, TryFromPrimitive, PartialEq, Copy)]
 #[repr(u8)]
 pub enum Direction {
     Buy = 1,
@@ -78,7 +79,7 @@ pub struct PositionHeader {
     pub open_price: f64,
     pub direction: Direction,
     pub size: f64,
-    pub market: com::FullPositionMarket,
+    pub market: FullPositionMarket,
 }
 
 impl PositionHeader {
@@ -96,7 +97,7 @@ impl PositionHeader {
 }
 
 impl Position {
-    pub const LEN: usize = 8 + 2 + (1 + 1) * 3 + 8 * 12 + 32 * 4;
+    pub const LEN: usize = 4 + 8 + 2 + (1 + 1) * 3 + 8 * 12 + 32 * 4;
     // Floating P/L
     pub fn get_pl_price(&self, p: market::Price) -> f64 {
         match self.direction {

@@ -31,7 +31,7 @@ pub mod bond {
             chianlink_price_account,
         )
     }
-    pub fn initialize_user_account(ctx: Context<UserAccount>) -> Result<Pubkey> {
+    pub fn initialize_user_account(ctx: Context<InitAccount>) -> Result<Pubkey> {
         user::initialize_user_account(ctx)
     }
     pub fn deposit(ctx: Context<Deposit>, amount: u64, category: String) -> Result<()> {

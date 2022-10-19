@@ -26,8 +26,12 @@ pub enum BondError {
     RiskControlBlocking,
     #[msg("Insufficient margin available")]
     InsufficientMargin,
+    #[msg("Insufficient balance to open a new position")]
+    InsufficientBalanceForUser,
     #[msg("The market does not support opening this type of position")]
     MarketNotSupportOpenPosition,
     #[msg("The market pauses to open new positions")]
     MarketPauses,
+    #[msg("The position in this mode has exceeded the limit")]
+    FullPositionExceededLimit,
 }

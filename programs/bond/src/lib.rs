@@ -34,8 +34,8 @@ pub mod bond {
     pub fn initialize_user_account(ctx: Context<InitAccount>) -> Result<Pubkey> {
         user::initialize_user_account(ctx)
     }
-    pub fn deposit(ctx: Context<Deposit>, amount: u64, category: String) -> Result<()> {
-        user::deposit(ctx, amount, category)
+    pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
+        user::deposit(ctx, amount)
     }
     pub fn open_position(
         ctx: Context<OpenPosition>,

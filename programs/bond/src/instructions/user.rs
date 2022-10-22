@@ -32,20 +32,17 @@ pub struct InitAccount<'info> {
     system_program: Program<'info, System>,
 }
 
-pub fn deposit(ctx: Context<Deposit>, amount: u64, category: String) -> Result<()> {
+pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
+    // transfer
     token::transfer(ctx.accounts.into(), amount)?;
     let user_account = &mut ctx.accounts.user_account;
-    let market_account = &mut ctx.accounts.market_account;
-    // transfer
     let balance = amount as f64;
     user_account.balance = balance;
-    market_account.vault_base_balance += balance;
-    msg!("category:{:?}", category);
     Ok(())
 }
 
 #[derive(Accounts)]
-#[instruction(amount:u64,category:String)]
+#[instruction(amount:u64)]
 pub struct Deposit<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
@@ -70,13 +67,6 @@ pub struct Deposit<'info> {
         bump,
         )]
     pub vault_token_account: Account<'info, TokenAccount>,
-    #[account(
-        mut,
-        constraint=market_account.category == category@BondError::IllegalMarketAccount,
-        seeds = [com::MARKET_ACCOUNT_SEED,category.as_bytes()],
-        bump,
-    )]
-    pub market_account: Box<Account<'info, Market>>,
     token_program: Program<'info, Token>,
 }
 

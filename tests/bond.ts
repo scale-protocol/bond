@@ -242,23 +242,19 @@ describe("bond", () => {
     let [user_account, bump] = await PublicKey.findProgramAddress(
       [USER_ACCOUNT_SEED, provider.wallet.publicKey.toBytes()],
       program.programId)
-    let [market_account, _bump] = await PublicKey.findProgramAddress(
-      [MARKET_ACCOUNT_SEED, encode(PAIR.BTC)],
-      program.programId)
+
 
     console.log(
       "\ntokenMint", SPL.mint.toBase58(),
       "\nuserTokenAccount:", SPL.userTokenAccount.address.toBase58(),
       "\nuserAccount:", user_account.toBase58(),
-      "\nmarket_account:", market_account.toBase58()
     )
 
-    const tx = await program.methods.deposit(new BN(1000), PAIR.BTC).accounts({
+    const tx = await program.methods.deposit(new BN(1000)).accounts({
       tokenMint: SPL.mint,
       userTokenAccount: SPL.userTokenAccount.address,
       userAccount: user_account,
       vaultTokenAccount: new PublicKey(VAULT_ACCOUNT),
-      marketAccount: market_account,
     }).signers([]).rpc()
 
     const account = await program.account.userAccount.fetch(user_account)

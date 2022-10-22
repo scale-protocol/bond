@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::mint;
 use std::convert::TryFrom;
+use std::fmt;
 
 /// The exposure ratio should not exceed 70% of the current pool,
 /// so as to avoid the risk that the platform's current pool is empty.
@@ -64,6 +65,9 @@ pub mod base_account {
     pub fn get_chainlink_price_account_sol() -> Pubkey {
         Pubkey::try_from("CcPVS9bqyXbD9cLnTbhhHazLsrua8QMFUHTutPtjyDzq").unwrap()
     }
+    pub fn get_clearing_robot() -> Pubkey {
+        Pubkey::try_from("9Q2SWBAXzrFeYu2k8diw1Q9bMD7Qo2pLMyjXU4iLT5iM").unwrap()
+    }
 }
 #[cfg(feature = "testnet")]
 pub mod base_account {
@@ -102,6 +106,9 @@ pub mod base_account {
     }
     pub fn get_chainlink_price_account_sol() -> Pubkey {
         Pubkey::try_from("").unwrap()
+    }
+    pub fn get_clearing_robot() -> Pubkey {
+        Pubkey::try_from("9Q2SWBAXzrFeYu2k8diw1Q9bMD7Qo2pLMyjXU4iLT5iM").unwrap()
     }
 }
 #[cfg(any(feature = "devnet", feature = "localhost"))]
@@ -142,6 +149,9 @@ pub mod base_account {
     pub fn get_chainlink_price_account_sol() -> Pubkey {
         Pubkey::try_from("HgTtcbcmp5BeThax5AU8vg4VwK79qAvAKKFMs8txMLW6").unwrap()
     }
+    pub fn get_clearing_robot() -> Pubkey {
+        Pubkey::try_from("9Q2SWBAXzrFeYu2k8diw1Q9bMD7Qo2pLMyjXU4iLT5iM").unwrap()
+    }
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq)]
@@ -161,6 +171,17 @@ impl<'a> From<&'a str> for FullPositionMarket {
             b"SOL/USD" => Self::SolUsd,
             _ => Self::None,
         }
+    }
+}
+impl fmt::Display for FullPositionMarket {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let t = match *self {
+            Self::BtcUsd => "BTC/USD",
+            Self::EthUsd => "ETH/USD",
+            Self::SolUsd => "SOL/USD",
+            Self::None => "None",
+        };
+        write!(f, "{}", t)
     }
 }
 

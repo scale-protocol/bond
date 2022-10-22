@@ -1,8 +1,7 @@
 use crate::com;
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    mint,
-    token::{self, spl_token::instruction::AuthorityType, Mint, SetAuthority, Token, TokenAccount},
+use anchor_spl::token::{
+    self, spl_token::instruction::AuthorityType, Mint, SetAuthority, Token, TokenAccount,
 };
 
 // the vault spl token pda account

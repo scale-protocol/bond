@@ -32,6 +32,14 @@ pub enum BondError {
     MarketNotSupportOpenPosition,
     #[msg("The market pauses to open new positions")]
     MarketPauses,
+    #[msg("The market has been frozen and cannot be settled.")]
+    MarketFrozen,
     #[msg("The position in this mode has exceeded the limit")]
     FullPositionExceededLimit,
+    #[msg("Account number does not match")]
+    AccountNumberNotMatch,
+    #[msg("No permission to perform this operation")]
+    NoPermission,
+    #[msg("The balance of the treasury is insufficient, and the withdrawal operation cannot be performed temporarily")]
+    InsufficientVaultBalance,
 }

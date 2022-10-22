@@ -4,11 +4,8 @@ use crate::{
     state::{market, position, user},
 };
 
-use anchor_lang::{prelude::*, solana_program::slot_history::Slot};
-use anchor_spl::{
-    mint,
-    token::{self, spl_token::instruction::AuthorityType, Mint, Token, TokenAccount, Transfer},
-};
+use anchor_lang::prelude::*;
+
 use std::convert::TryFrom;
 pub fn open_position(
     ctx: Context<OpenPosition>,
@@ -68,8 +65,8 @@ pub fn open_position(
     position_account.position_seed_offset = user_account.position_seed_offset;
     position_account.margin = margin;
     position_account.position_status = position::PositionStatus::Normal;
-    position_account.spread = price.spread;
-    position_account.current_real_price = price.real_price;
+    position_account.open_spread = price.spread;
+    position_account.open_real_price = price.real_price;
     position_account.size = size;
     position_account.lot = 1;
     position_account.open_price = match position_account.direction {
@@ -187,12 +184,12 @@ pub struct OpenPosition<'info> {
         seeds = [com::MARKET_ACCOUNT_SEED,category.as_bytes()],
         bump,
     )]
-    pub market_account: Account<'info, market::Market>,
+    pub market_account: Box<Account<'info, market::Market>>,
     #[account(
         init,
         payer=authority,
         space=position::Position::LEN+8,
-        seeds=[com::POSITION_ACCOUNT_SEED,authority.key().as_ref(),market_account.key().as_ref(),user_account.position_seed_offset.to_string().as_bytes().as_ref()],
+        seeds=[com::POSITION_ACCOUNT_SEED,authority.key().as_ref(),user_account.key().as_ref(),user_account.position_seed_offset.to_string().as_bytes().as_ref()],
         bump,
     )]
     pub position_account: Account<'info, position::Position>,
@@ -202,26 +199,26 @@ pub struct OpenPosition<'info> {
     )]
     pub pyth_price_account: AccountInfo<'info>,
     /// CHECK: Verify later
-    #[account(constraint=market_account.pyth_price_account.key()==chianlink_price_account.key()@BondError::InvalidPriceAccount)]
+    #[account(constraint=market_account.chianlink_price_account.key()==chianlink_price_account.key()@BondError::InvalidPriceAccount)]
     pub chianlink_price_account: AccountInfo<'info>,
     /// CHECK: Verify later
     #[account(
-        constraint=market_account_btc.category == "BTC/USD"@BondError::IllegalMarketAccount,
+        constraint=market_account_btc.category == com::FullPositionMarket::BtcUsd.to_string()@BondError::IllegalMarketAccount,
         constraint=market_account_btc.officer == true@BondError::IllegalMarketAccount,
     )]
-    pub market_account_btc: Account<'info, market::Market>,
+    pub market_account_btc: Box<Account<'info, market::Market>>,
     /// CHECK: Verify later
     #[account(
-        constraint=market_account_eth.category == "ETH/USD"@BondError::IllegalMarketAccount,
+        constraint=market_account_eth.category == com::FullPositionMarket::EthUsd.to_string()@BondError::IllegalMarketAccount,
         constraint=market_account_eth.officer == true@BondError::IllegalMarketAccount,
     )]
-    pub market_account_eth: Account<'info, market::Market>,
+    pub market_account_eth: Box<Account<'info, market::Market>>,
     /// CHECK: Verify later
     #[account(
-        constraint=market_account_sol.category == "SOL/USD"@BondError::IllegalMarketAccount,
+        constraint=market_account_sol.category == com::FullPositionMarket::SolUsd.to_string()@BondError::IllegalMarketAccount,
         constraint=market_account_sol.officer == true@BondError::IllegalMarketAccount,
     )]
-    pub market_account_sol: Account<'info, market::Market>,
+    pub market_account_sol: Box<Account<'info, market::Market>>,
     /// CHECK: Verify later
     #[account(
             constraint = com::base_account::get_pyth_price_account_btc() == pyth_price_account_btc.key()@BondError::InvalidPriceAccount,
@@ -254,6 +251,159 @@ pub struct OpenPosition<'info> {
     pub chainlink_price_account_sol: AccountInfo<'info>,
     system_program: Program<'info, System>,
 }
+
+pub fn close_position(ctx: Context<ClosePosition>) -> Result<()> {
+    let user_account = &mut ctx.accounts.user_account;
+    let market_account = &mut ctx.accounts.market_account;
+    let position_account = &mut ctx.accounts.position_account;
+    if market_account.status == market::MarketStatus::Frozen {
+        return Err(BondError::MarketFrozen.into());
+    }
+    // check user
+    let is_user_operator = user_account.authority == ctx.accounts.authority.key();
+    let is_robot_operator = com::base_account::get_clearing_robot() == ctx.accounts.authority.key();
+    if !is_user_operator && !is_robot_operator {
+        return Err(BondError::NoPermission.into());
+    }
+    let price = market_account.get_price(
+        &ctx.accounts.pyth_price_account,
+        &ctx.accounts.chianlink_price_account,
+    )?;
+    // set position data
+    if is_user_operator {
+        position_account.position_status = position::PositionStatus::NormalClosing;
+    }
+    if is_robot_operator {
+        position_account.position_status = position::PositionStatus::ForceClosing;
+    }
+    let total_pl = position_account.get_pl_price(price);
+    position_account.profit = total_pl;
+    position_account.close_price = match position_account.direction {
+        position::Direction::Buy => price.sell_price,
+        position::Direction::Sell => price.buy_price,
+    };
+    position_account.close_real_price = price.real_price;
+    position_account.close_spread = price.spread;
+    position_account.close_time = Clock::get().unwrap().unix_timestamp;
+    position_account.close_operator = ctx.accounts.authority.key();
+
+    let fund_size = position_account.get_fund_size();
+
+    // position settlement
+    match position_account.position_type {
+        position::PositionType::Full => {}
+        position::PositionType::Independent => {}
+    }
+
+    let full_level = market_account.vault_full as f64;
+    // Priority in settlement from profit and loss pool
+    // Whether the basic fund pool is full
+    if total_pl >= 0.0 {
+        market_account.vault_profit_balance = market_account.vault_profit_balance - total_pl;
+        if market_account.vault_profit_balance < 0.0 {
+            market_account.vault_base_balance =
+                market_account.vault_base_balance + market_account.vault_profit_balance;
+            market_account.vault_profit_balance = 0.0;
+        }
+    } else {
+        market_account.vault_base_balance = market_account.vault_base_balance + total_pl.abs();
+        let d = market_account.vault_base_balance - full_level;
+        if d > 0.0 {
+            market_account.vault_profit_balance += d;
+            market_account.vault_base_balance = full_level;
+        }
+    }
+    if position_account.position_type == position::PositionType::Independent {
+        let mut margin = position_account.margin;
+        margin += total_pl;
+        if margin > 0.0 {
+            user_account.balance += margin;
+        } else {
+            msg!("The user's initial margin is insufficient to cover the loss");
+        }
+    } else {
+        user_account.balance += total_pl
+    }
+    match position_account.direction {
+        position::Direction::Buy => {
+            market_account.long_position_total -= fund_size;
+            user_account.position_full_vector -= 1;
+        }
+        position::Direction::Sell => {
+            market_account.short_position_total -= fund_size;
+            user_account.position_full_vector -= 1;
+        }
+    }
+    // set user account data
+    user_account.margin_total -= position_account.margin;
+    match position_account.position_type {
+        position::PositionType::Full => {
+            user_account.margin_full_total -= position_account.margin;
+            match position_account.direction {
+                position::Direction::Buy => {
+                    user_account.margin_full_buy_total -= position_account.margin
+                }
+                position::Direction::Sell => {
+                    user_account.margin_full_sell_total -= position_account.margin
+                }
+            }
+        }
+        position::PositionType::Independent => {
+            user_account.margin_independent_total -= position_account.margin;
+            match position_account.direction {
+                position::Direction::Buy => {
+                    user_account.margin_independent_buy_total -= position_account.margin
+                }
+                position::Direction::Sell => {
+                    user_account.margin_independent_sell_total -= position_account.margin
+                }
+            }
+        }
+    }
+    user_account.update_index_by_close(position_account.position_seed_offset);
+    user_account.remove_position_header(position::PositionHeader {
+        position_seed_offset: position_account.position_seed_offset,
+        open_price: position_account.open_price,
+        direction: position_account.direction,
+        size: position_account.size,
+        market: com::FullPositionMarket::from(market_account.category.as_str()),
+    });
+    Ok(())
+}
+
+#[derive(Accounts)]
+pub struct ClosePosition<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(
+        mut,
+        // has_one = authority@BondError::UserTransactionAccountMismatch,
+        seeds = [com::USER_ACCOUNT_SEED,authority.key().as_ref()],
+        bump,
+    )]
+    pub user_account: Account<'info, user::UserAccount>,
+    #[account(
+        mut,
+        constraint = market_account.key()==position_account.market_account.key()@BondError::AccountNumberNotMatch,
+    )]
+    pub market_account: Box<Account<'info, market::Market>>,
+    #[account(
+        seeds=[com::POSITION_ACCOUNT_SEED,user_account.authority.key().as_ref(),user_account.key().as_ref(),user_account.position_seed_offset.to_string().as_bytes().as_ref()],
+        bump,
+    )]
+    pub position_account: Account<'info, position::Position>,
+    /// CHECK: Verify later
+    #[account(
+        constraint = market_account.pyth_price_account.key() == pyth_price_account.key()@BondError::InvalidPriceAccount)
+    ]
+    pub pyth_price_account: AccountInfo<'info>,
+    /// CHECK: Verify later
+    #[account(
+        constraint=market_account.chianlink_price_account.key()==chianlink_price_account.key()@BondError::InvalidPriceAccount)
+    ]
+    pub chianlink_price_account: AccountInfo<'info>,
+}
+
 // get the equity
 fn get_equity(ctx: Context<OpenPosition>) -> Result<f64> {
     let account_balance = ctx.accounts.user_account.balance;

@@ -15,7 +15,7 @@ export default async function initSplAccounts({ provider }) {
     const toWallet = Keypair.generate();
 
     // Create new token mint
-    const mint = await createMint(connection, fromWallet, fromWallet.publicKey, null, 9);
+    const mint = await createMint(connection, fromWallet, fromWallet.publicKey, null, 2);
 
     // Get the token account of the fromWallet address, and if it does not exist, create it
     const fromTokenAccount = await getOrCreateAssociatedTokenAccount(
@@ -34,7 +34,7 @@ export default async function initSplAccounts({ provider }) {
         mint,
         fromTokenAccount.address,
         fromWallet.publicKey,
-        10000000000000
+        1000000
     );
     console.log('mint tx:', signature);
     signature = await transfer(
@@ -43,7 +43,7 @@ export default async function initSplAccounts({ provider }) {
         fromTokenAccount.address,
         toTokenAccount.address,
         fromWallet.publicKey,
-        50000000000
+        50000
     );
     const userTokenAccount = await getOrCreateAssociatedTokenAccount(connection, fromWallet, mint, provider.wallet.publicKey);
     signature = await transfer(
@@ -52,7 +52,7 @@ export default async function initSplAccounts({ provider }) {
         fromTokenAccount.address,
         userTokenAccount.address,
         fromWallet.publicKey,
-        50000000000
+        50000
     );
 
     return {

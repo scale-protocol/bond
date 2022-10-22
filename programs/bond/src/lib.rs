@@ -47,4 +47,13 @@ pub mod bond {
     ) -> Result<()> {
         position::open_position(ctx, category, size, leverage, position_type, direction)
     }
+    pub fn close_position(ctx: Context<ClosePosition>) -> Result<()> {
+        position::close_position(ctx)
+    }
+    pub fn investment(ctx: Context<Investment>, category: String, amount: u64) -> Result<()> {
+        market::investment(ctx, category, amount)
+    }
+    pub fn divestment(ctx: Context<Divestment>, category: String, amount: u64) -> Result<()> {
+        market::divestment(ctx, category, amount)
+    }
 }

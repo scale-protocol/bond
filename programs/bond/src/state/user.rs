@@ -3,6 +3,7 @@ use crate::state::position::*;
 use anchor_lang::prelude::*;
 
 #[account]
+#[derive(Debug)]
 pub struct UserAccount {
     /// Account owner wallet address
     pub authority: Pubkey,

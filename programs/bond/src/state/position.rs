@@ -5,6 +5,7 @@ use anchor_lang::{accounts, prelude::*};
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 use num_enum::TryFromPrimitive;
 #[account]
+#[derive(Debug)]
 pub struct Position {
     pub position_seed_offset: u32,
     /// Initial position margin
@@ -17,18 +18,24 @@ pub struct Position {
     pub position_status: PositionStatus,
     /// buy long, 2 sell short.
     pub direction: Direction,
-    /// Point difference data on which the quotation is based
-    pub spread: f64,
-    // Actual quotation currently obtained
-    pub current_real_price: f64,
     /// the position size
     pub size: f64,
     /// default is 1,Reserved in the future
     pub lot: u64,
     // Opening quotation (expected opening price under the listing mode)
     pub open_price: f64,
+    /// Point difference data on which the quotation is based
+    pub open_spread: f64,
+    // Actual quotation currently obtained
+    pub open_real_price: f64,
     /// Closing quotation
     pub close_price: f64,
+    /// Point difference data on which the quotation is based
+    pub close_spread: f64,
+    // Actual quotation currently obtained
+    pub close_real_price: f64,
+    // PL
+    pub profit: f64,
     /// Automatic profit stop price
     pub stop_surplus_price: f64,
     /// Automatic stop loss price
@@ -97,12 +104,16 @@ impl PositionHeader {
 }
 
 impl Position {
-    pub const LEN: usize = 4 + 8 + 2 + (1 + 1) * 3 + 8 * 12 + 32 * 4;
+    pub const LEN: usize = 4 + 8 + 2 + (1 + 1) * 3 + 8 * 15 + 32 * 4;
     // Floating P/L
     pub fn get_pl_price(&self, p: market::Price) -> f64 {
         match self.direction {
-            Direction::Buy => (p.sell_price - self.open_price) * self.lot as f64 * self.size,
-            Direction::Sell => (self.open_price - p.buy_price) * self.lot as f64 * self.size,
+            Direction::Buy => {
+                f64_round((p.sell_price - self.open_price) * self.lot as f64 * self.size)
+            }
+            Direction::Sell => {
+                f64_round((self.open_price - p.buy_price) * self.lot as f64 * self.size)
+            }
         }
     }
     pub fn get_fund_size(&self) -> f64 {

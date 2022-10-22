@@ -1,12 +1,9 @@
 use crate::com;
 use crate::errors::BondError;
-use crate::state::market;
+use crate::state::market::*;
 use crate::state::user::*;
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    mint,
-    token::{self, Mint, Token, TokenAccount, Transfer},
-};
+use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 
 pub fn initialize_user_account(ctx: Context<InitAccount>) -> Result<Pubkey> {
     let account = &mut ctx.accounts.user_account;
@@ -52,7 +49,6 @@ pub fn deposit(ctx: Context<Deposit>, amount: u64, category: String) -> Result<(
 pub struct Deposit<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
-    // #[account(address=mint::USDC)]
     // #[account(address=com::get_vault_mint())]
     pub token_mint: Account<'info, Mint>,
     #[account(
@@ -80,7 +76,7 @@ pub struct Deposit<'info> {
         seeds = [com::MARKET_ACCOUNT_SEED,category.as_bytes()],
         bump,
     )]
-    pub market_account: Account<'info, market::Market>,
+    pub market_account: Box<Account<'info, Market>>,
     token_program: Program<'info, Token>,
 }
 

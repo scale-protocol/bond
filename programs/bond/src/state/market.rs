@@ -3,7 +3,9 @@ use crate::price::price;
 use crate::state::position;
 use anchor_lang::prelude::*;
 use num_enum::TryFromPrimitive;
+
 #[account]
+#[derive(Debug)]
 pub struct Market {
     /// Maximum allowable leverage ratio
     pub max_leverage: u16,
@@ -49,6 +51,7 @@ pub struct Market {
     /// Whether full position  mode is supported
     pub is_support_full_position: bool,
 }
+#[derive(Debug, Clone, Copy)]
 pub struct Price {
     pub buy_price: f64,
     pub sell_price: f64,

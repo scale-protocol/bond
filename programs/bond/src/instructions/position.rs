@@ -149,8 +149,7 @@ pub fn open_position(
     );
     let user_account_equity = get_equity(ctx)?;
     // check margin
-    let margin_ratio = user_account_equity / margin_full_total;
-    if margin_ratio < com::BURST_RATE {
+    if (user_account_equity / margin_full_total) < com::BURST_RATE {
         return Err(BondError::InsufficientMargin.into());
     }
     // Risk judgment

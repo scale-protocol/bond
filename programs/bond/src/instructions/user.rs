@@ -45,7 +45,7 @@ pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
 pub struct Deposit<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
-    // #[account(address=com::get_vault_mint())]
+    #[account(address=com::base_account::get_vault_mint())]
     pub token_mint: Account<'info, Mint>,
     #[account(
         mut,

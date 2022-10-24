@@ -140,7 +140,7 @@ describe("bond", () => {
     ).accounts({
       marketAccount: market_account_btc
     }).rpc()
-    console.log("tx:", tx, "market_account:", market_account_btc.toBase58())
+    console.log("tx:", tx, "market_account_btc:", market_account_btc.toBase58())
     var account = await program.account.market.fetch(market_account_btc)
     console.log("market_account_data:", account.status)
     assert.strictEqual(account.vaultFull.toNumber(), 0);
@@ -158,6 +158,7 @@ describe("bond", () => {
     ).accounts({
       marketAccount: market_account_eth
     }).rpc()
+    console.log("tx:", tx, "market_account_eth:", market_account_eth.toBase58())
 
     let [market_account_sol, s_bump] = await PublicKey.findProgramAddress(
       [MARKET_ACCOUNT_SEED,
@@ -172,6 +173,7 @@ describe("bond", () => {
     ).accounts({
       marketAccount: market_account_sol
     }).rpc()
+    console.log("tx:", tx, "market_account_sol:", market_account_sol.toBase58())
   });
 
   it("test market account investment", async () => {

@@ -34,7 +34,7 @@ export default async function initSplAccounts({ provider }) {
         mint,
         fromTokenAccount.address,
         fromWallet.publicKey,
-        1000000
+        10000000000
     );
     console.log('mint tx:', signature);
     signature = await transfer(

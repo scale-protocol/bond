@@ -82,7 +82,7 @@ pub fn investment(ctx: Context<Investment>, category: String, amount: u64) -> Re
 pub struct Investment<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
-    // #[account(address=com::get_vault_mint())]
+    #[account(address=com::base_account::get_vault_mint())]
     pub token_mint: Account<'info, Mint>,
     #[account(
         mut,
@@ -141,7 +141,7 @@ pub fn divestment(ctx: Context<Divestment>, category: String, amount: u64) -> Re
 pub struct Divestment<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
-    // #[account(address=com::get_vault_mint())]
+    #[account(address=com::base_account::get_vault_mint())]
     pub token_mint: Account<'info, Mint>,
     #[account(
         mut,

@@ -3,12 +3,13 @@ seeds = false
 skip-lint = false
 [programs.localnet]
 bond = "3CuC9qc7ehNu3MrGrqDMu6it2g71dFJTKn7184sb1TuJ"
-
+[programs.devnet]
+bond = "3CuC9qc7ehNu3MrGrqDMu6it2g71dFJTKn7184sb1TuJ"
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "/Users/m/.config/solana/id.json"
 
 [scripts]

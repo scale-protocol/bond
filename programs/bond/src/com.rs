@@ -117,7 +117,7 @@ pub mod base_account {
     /// Mint address of the vault token, the test version is the circulating token issued by the project,
     /// and the official network is USDC
     pub fn get_vault_mint() -> Pubkey {
-        Pubkey::try_from("6fsNvxjjePiMGeHUFKUMhjG9CGAVRVwwQjaUJPrLYUu3").unwrap()
+        Pubkey::try_from("BKCWDCwVmcS6hP9K7NnFk4UQXJGLDqcBNeqzJ7jJ5xNV").unwrap()
     }
     /// Address of project development fund wallet
     pub fn get_project_fund_wallet() -> Pubkey {

@@ -2,7 +2,7 @@ use anchor_lang::error_code;
 
 #[error_code]
 pub enum BondError {
-    #[msg("Category does not exceed 20 bytes")]
+    #[msg("Pair does not exceed 20 bytes")]
     CategoryTooLong,
     #[msg("invalid full position market")]
     InvalidFullPositionMarket,

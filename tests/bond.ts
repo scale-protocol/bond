@@ -228,6 +228,7 @@ describe("bond", () => {
       [USER_ACCOUNT_SEED, provider.wallet.publicKey.toBytes()],
       program.programId)
     var tx = await program.methods.initializeUserAccount(
+      bump
     ).accounts({
       userAccount: user_account,
     }).rpc()

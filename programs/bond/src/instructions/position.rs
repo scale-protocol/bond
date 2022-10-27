@@ -9,7 +9,7 @@ use anchor_lang::prelude::*;
 use std::convert::TryFrom;
 pub fn open_position(
     ctx: Context<OpenPosition>,
-    category: String,
+    pair: String,
     size: f64,
     leverage: u16,
     position_type: u8,
@@ -109,7 +109,7 @@ pub fn open_position(
         open_price: position_account.open_price,
         direction: position_account.direction,
         size,
-        market: com::FullPositionMarket::from(category.as_str()),
+        market: com::FullPositionMarket::from(pair.as_str()),
     })?;
     // this is next position offset number
     user_account.position_seed_offset += 1;
@@ -162,11 +162,11 @@ pub fn open_position(
     if fund_pool > total_liquidity * com::POSITION_PROPORTION {
         return Err(BondError::RiskControlBlocking.into());
     }
-    msg!("create position order by {:?}", category);
+    msg!("create position order by {:?}", pair);
     Ok(())
 }
 #[derive(Accounts)]
-#[instruction(category:String)]
+#[instruction(pair:String)]
 pub struct OpenPosition<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
@@ -179,8 +179,8 @@ pub struct OpenPosition<'info> {
     pub user_account: Account<'info, user::UserAccount>,
     #[account(
         mut,
-        constraint=market_account.category == category@BondError::IllegalMarketAccount,
-        seeds = [com::MARKET_ACCOUNT_SEED,category.as_bytes()],
+        constraint=market_account.pair == pair@BondError::IllegalMarketAccount,
+        seeds = [com::MARKET_ACCOUNT_SEED,pair.as_bytes()],
         bump,
     )]
     pub market_account: Box<Account<'info, market::Market>>,
@@ -202,19 +202,19 @@ pub struct OpenPosition<'info> {
     pub chianlink_price_account: AccountInfo<'info>,
     /// CHECK: Verify later
     #[account(
-        constraint=market_account_btc.category == com::FullPositionMarket::BtcUsd.to_string()@BondError::IllegalMarketAccount,
+        constraint=market_account_btc.pair == com::FullPositionMarket::BtcUsd.to_string()@BondError::IllegalMarketAccount,
         constraint=market_account_btc.officer == true@BondError::IllegalMarketAccount,
     )]
     pub market_account_btc: Box<Account<'info, market::Market>>,
     /// CHECK: Verify later
     #[account(
-        constraint=market_account_eth.category == com::FullPositionMarket::EthUsd.to_string()@BondError::IllegalMarketAccount,
+        constraint=market_account_eth.pair == com::FullPositionMarket::EthUsd.to_string()@BondError::IllegalMarketAccount,
         constraint=market_account_eth.officer == true@BondError::IllegalMarketAccount,
     )]
     pub market_account_eth: Box<Account<'info, market::Market>>,
     /// CHECK: Verify later
     #[account(
-        constraint=market_account_sol.category == com::FullPositionMarket::SolUsd.to_string()@BondError::IllegalMarketAccount,
+        constraint=market_account_sol.pair == com::FullPositionMarket::SolUsd.to_string()@BondError::IllegalMarketAccount,
         constraint=market_account_sol.officer == true@BondError::IllegalMarketAccount,
     )]
     pub market_account_sol: Box<Account<'info, market::Market>>,
@@ -365,7 +365,7 @@ pub fn close_position(ctx: Context<ClosePosition>) -> Result<()> {
         open_price: position_account.open_price,
         direction: position_account.direction,
         size: position_account.size,
-        market: com::FullPositionMarket::from(market_account.category.as_str()),
+        market: com::FullPositionMarket::from(market_account.pair.as_str()),
     });
     Ok(())
 }

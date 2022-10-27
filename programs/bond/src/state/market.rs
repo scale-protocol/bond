@@ -40,9 +40,9 @@ pub struct Market {
     pub operator: [Pubkey; 5],
     pub pyth_price_account: Pubkey,
     pub chianlink_price_account: Pubkey,
-    /// Transaction category (token type, such as BTC, ETH)
+    /// Transaction pair (token type, such as BTC, ETH)
     /// len: 4+20
-    pub category: String,
+    pub pair: String,
     /// Point difference (can be understood as slip point),
     /// deviation between the executed quotation and the actual quotation
     pub spread: f64,

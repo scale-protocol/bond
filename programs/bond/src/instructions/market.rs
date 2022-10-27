@@ -5,17 +5,17 @@ pub(crate) use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 pub fn initialize_market(
     ctx: Context<InitializeMarket>,
-    category: String,
+    pair: String,
     spread: f64,
     bump: u8,
     pyth_price_account: String,
     chianlink_price_account: String,
 ) -> Result<Pubkey> {
     let market_account = &mut ctx.accounts.market_account;
-    if category.as_bytes().len() > 20 {
+    if pair.as_bytes().len() > 20 {
         return err!(BondError::CategoryTooLong);
     }
-    market_account.category = category.clone();
+    market_account.pair = pair.clone();
     market_account.max_leverage = 125;
     market_account.management_rate = 0.0004;
     market_account.transaction_rate = 0.003;
@@ -35,7 +35,7 @@ pub fn initialize_market(
     market_account.is_support_full_position = false;
     if ctx.accounts.initializer.key() == com::base_account::get_team_authority() {
         market_account.officer = true;
-        let c = com::FullPositionMarket::from(category.as_str());
+        let c = com::FullPositionMarket::from(pair.as_str());
         if c != com::FullPositionMarket::None {
             market_account.is_support_full_position = true;
         }
@@ -54,7 +54,7 @@ pub fn initialize_market(
     Ok(ctx.accounts.market_account.key())
 }
 #[derive(Accounts)]
-#[instruction(category: String,spread: f64,bump: u8)]
+#[instruction(pair: String,spread: f64,bump: u8)]
 pub struct InitializeMarket<'info> {
     #[account(mut)]
     pub initializer: Signer<'info>,
@@ -62,23 +62,23 @@ pub struct InitializeMarket<'info> {
         init,
         payer=initializer,
         space=market::Market::LEN + 8,
-        seeds = [com::MARKET_ACCOUNT_SEED,category.as_bytes()],
+        seeds = [com::MARKET_ACCOUNT_SEED,pair.as_bytes()],
         bump,
     )]
     pub market_account: Account<'info, market::Market>,
     system_program: Program<'info, System>,
 }
 
-pub fn investment(ctx: Context<Investment>, category: String, amount: u64) -> Result<()> {
+pub fn investment(ctx: Context<Investment>, pair: String, amount: u64) -> Result<()> {
     token::transfer(ctx.accounts.into(), amount)?;
     let market_account = &mut ctx.accounts.market_account;
     market_account.vault_full += amount;
     market_account.vault_base_balance += amount as f64;
-    msg!("investment category:{:?}", category);
+    msg!("investment pair:{:?}", pair);
     Ok(())
 }
 #[derive(Accounts)]
-#[instruction(category: String,amount:u64)]
+#[instruction(pair: String,amount:u64)]
 pub struct Investment<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
@@ -98,7 +98,7 @@ pub struct Investment<'info> {
     pub vault_token_account: Account<'info, TokenAccount>,
     #[account(
         mut,
-        seeds = [com::MARKET_ACCOUNT_SEED,category.as_bytes()],
+        seeds = [com::MARKET_ACCOUNT_SEED,pair.as_bytes()],
         bump,
     )]
     pub market_account: Box<Account<'info, market::Market>>,
@@ -117,7 +117,7 @@ impl<'info> From<&mut Investment<'info>> for CpiContext<'_, '_, '_, 'info, Trans
     }
 }
 
-pub fn divestment(ctx: Context<Divestment>, category: String, amount: u64) -> Result<()> {
+pub fn divestment(ctx: Context<Divestment>, pair: String, amount: u64) -> Result<()> {
     let cpi_ctx: CpiContext<Transfer> = ctx.accounts.into();
 
     let (_pda, bump_seed) =
@@ -126,18 +126,18 @@ pub fn divestment(ctx: Context<Divestment>, category: String, amount: u64) -> Re
     token::transfer(cpi_ctx.with_signer(&[&seeds[..]]), amount)?;
 
     let market_account = &mut ctx.accounts.market_account;
-    if market_account.vault_full < amount {
+    if market_account.vault_full < amount || market_account.vault_base_balance < amount as f64 {
         return Err(BondError::InsufficientVaultBalance.into());
     }
     market_account.vault_full -= amount;
     market_account.vault_base_balance -= amount as f64;
-    msg!("divestment category:{:?}", category);
+    msg!("divestment pair:{:?}", pair);
 
     Ok(())
 }
 
 #[derive(Accounts)]
-#[instruction(category: String,amount:u64)]
+#[instruction(pair: String,amount:u64)]
 pub struct Divestment<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
@@ -164,7 +164,7 @@ pub struct Divestment<'info> {
     pub pda_authority_account: AccountInfo<'info>,
     #[account(
         mut,
-        seeds = [com::MARKET_ACCOUNT_SEED,category.as_bytes()],
+        seeds = [com::MARKET_ACCOUNT_SEED,pair.as_bytes()],
         bump,
     )]
     pub market_account: Box<Account<'info, market::Market>>,

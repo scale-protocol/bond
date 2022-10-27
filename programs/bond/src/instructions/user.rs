@@ -4,7 +4,7 @@ use crate::state::user::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 
-pub fn initialize_user_account(ctx: Context<InitAccount>) -> Result<Pubkey> {
+pub fn initialize_user_account(ctx: Context<InitUserAccount>, bump: u8) -> Result<Pubkey> {
     let account = &mut ctx.accounts.user_account;
     account.authority = ctx.accounts.initializer.key();
     // Reserve the next order number forever
@@ -14,10 +14,12 @@ pub fn initialize_user_account(ctx: Context<InitAccount>) -> Result<Pubkey> {
     account.margin_total = 0.0;
     account.margin_full_total = 0.0;
     account.margin_independent_total = 0.0;
+    msg!("user account bump:{}", bump);
     Ok(ctx.accounts.user_account.key())
 }
 #[derive(Accounts)]
-pub struct InitAccount<'info> {
+#[instruction(bump: u8)]
+pub struct InitUserAccount<'info> {
     #[account(mut)]
     pub initializer: Signer<'info>,
     #[account(
@@ -36,7 +38,7 @@ pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
     token::transfer(ctx.accounts.into(), amount)?;
     let user_account = &mut ctx.accounts.user_account;
     let balance = amount as f64;
-    user_account.balance = balance;
+    user_account.balance += balance;
     Ok(())
 }
 

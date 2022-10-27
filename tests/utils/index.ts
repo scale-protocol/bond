@@ -13,9 +13,11 @@ export default async function initSplAccounts({ provider }) {
 
     // Generate a new wallet to receive newly minted token
     const toWallet = Keypair.generate();
-
+    const mintKeypair = Keypair.fromSecretKey(buffer.Buffer.from(JSON.parse(fs.readFileSync("/Users/m/work/lihua/blok/scale/bond/local_mint.json", {
+        encoding: "utf-8",
+    }))));
     // Create new token mint
-    const mint = await createMint(connection, fromWallet, fromWallet.publicKey, null, 2);
+    const mint = await createMint(connection, fromWallet, fromWallet.publicKey, null, 2, mintKeypair);
 
     // Get the token account of the fromWallet address, and if it does not exist, create it
     const fromTokenAccount = await getOrCreateAssociatedTokenAccount(

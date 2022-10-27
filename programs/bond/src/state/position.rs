@@ -14,7 +14,7 @@ pub struct Position {
     pub position_type: PositionType,
     /// Position status: 1 normal, 2 normal closing, 3 Forced closing, 4 pending.
     pub position_status: PositionStatus,
-    /// buy long, 2 sell short.
+    /// 1 buy long, 2 sell short.
     pub direction: Direction,
     /// the position size
     pub size: f64,

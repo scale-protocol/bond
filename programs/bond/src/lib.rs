@@ -16,7 +16,7 @@ pub mod bond {
     /// create market
     pub fn initialize_market(
         ctx: Context<InitializeMarket>,
-        category: String,
+        pair: String,
         spread: f64,
         bump: u8,
         pyth_price_account: String,
@@ -24,36 +24,36 @@ pub mod bond {
     ) -> Result<Pubkey> {
         market::initialize_market(
             ctx,
-            category,
+            pair,
             spread,
             bump,
             pyth_price_account,
             chianlink_price_account,
         )
     }
-    pub fn initialize_user_account(ctx: Context<InitAccount>) -> Result<Pubkey> {
-        user::initialize_user_account(ctx)
+    pub fn initialize_user_account(ctx: Context<InitUserAccount>, bump: u8) -> Result<Pubkey> {
+        user::initialize_user_account(ctx, bump)
     }
     pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
         user::deposit(ctx, amount)
     }
     pub fn open_position(
         ctx: Context<OpenPosition>,
-        category: String,
+        pair: String,
         size: f64,
         leverage: u16,
         position_type: u8,
         direction: u8,
     ) -> Result<()> {
-        position::open_position(ctx, category, size, leverage, position_type, direction)
+        position::open_position(ctx, pair, size, leverage, position_type, direction)
     }
     pub fn close_position(ctx: Context<ClosePosition>) -> Result<()> {
         position::close_position(ctx)
     }
-    pub fn investment(ctx: Context<Investment>, category: String, amount: u64) -> Result<()> {
-        market::investment(ctx, category, amount)
+    pub fn investment(ctx: Context<Investment>, pair: String, amount: u64) -> Result<()> {
+        market::investment(ctx, pair, amount)
     }
-    pub fn divestment(ctx: Context<Divestment>, category: String, amount: u64) -> Result<()> {
-        market::divestment(ctx, category, amount)
+    pub fn divestment(ctx: Context<Divestment>, pair: String, amount: u64) -> Result<()> {
+        market::divestment(ctx, pair, amount)
     }
 }

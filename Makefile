@@ -27,3 +27,5 @@ openposition:
 	cargo run -p cli -- open_position -p 'BTC/USD' -s 1.1 -l 20 -t 1 -d 1
 closeposition:
 	cargo run -p cli -- close_position -o 1
+bot:
+	cargo run -p cli -- bot

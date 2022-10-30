@@ -12,6 +12,10 @@ pub enum CliError {
     Unknown(String),
     #[error("Can not load config file from local:{0}")]
     LoadConfigFileError(String),
+    #[error("Subscription account failed: {0}")]
+    SubscriptionAccountFailed(String),
+    #[error("Can not create tokio runtime: {0}")]
+    TokioRuntimeCreateField(String),
 }
 pub fn id() -> Pubkey {
     Pubkey::try_from("3CuC9qc7ehNu3MrGrqDMu6it2g71dFJTKn7184sb1TuJ").unwrap()

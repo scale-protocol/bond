@@ -4,6 +4,7 @@ use anchor_client::solana_sdk::system_program;
 use anchor_client::ClientError;
 use bond::state::{market, position, user};
 use bond::{accounts, com as bcom, instruction};
+use log::debug;
 use spl_associated_token_account;
 use spl_token;
 pub fn init_vault(ctx: com::Context) -> anyhow::Result<()> {
@@ -430,22 +431,22 @@ fn debug_rpc_error(e: ClientError) -> com::CliError {
     let err = com::CliError::Unknown(e.to_string());
     match e {
         ClientError::AccountNotFound => {
-            println!("rpc error: Account not found");
+            debug!("rpc error: Account not found");
         }
         ClientError::AnchorError(err) => {
-            println!("{:#?}", err);
+            debug!("{:#?}", err);
         }
         ClientError::ProgramError(err) => {
-            println!("{:#?}", err)
+            debug!("{:#?}", err)
         }
         ClientError::SolanaClientError(err) => {
-            println!("{:#?}", err);
+            debug!("{:#?}", err);
         }
         ClientError::SolanaClientPubsubError(err) => {
-            println!("{:#?}", err)
+            debug!("{:#?}", err)
         }
         ClientError::LogParseError(err) => {
-            println!("{:#?}", err)
+            debug!("{:#?}", err)
         }
     }
     err

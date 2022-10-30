@@ -1,3 +1,4 @@
+use crate::bot::app;
 use crate::client;
 use crate::com;
 use crate::config;
@@ -6,7 +7,6 @@ use clap::{arg, Command};
 use log::debug;
 use std::ffi::OsString;
 use std::path::PathBuf;
-
 fn cli() -> Command {
     Command::new("Scale contract command line operator")
         .subcommand_required(true)
@@ -70,13 +70,17 @@ fn cli() -> Command {
                 .arg(arg!(-p --pair <PAIR> "The market account pair. .e.g BTC/USD"))
                 .arg(arg!(-a --amount <AMOUNT> "Amount of divestment").value_parser(clap::value_parser!(u64))),
         )
+        .subcommand(
+            Command::new("bot")
+                .about("Start a settlement robot. Monitor the trading market and close risk positions in a timely manner")
+        )
 }
 
 pub fn run() -> anyhow::Result<()> {
+    env_logger::init();
     let matches = cli().get_matches();
     let config_file = matches.get_one::<PathBuf>("file");
     let mut config = config::Config::default();
-
     match config_file {
         Some(c) => config.config_file = c.to_path_buf(),
         None => {}
@@ -137,6 +141,10 @@ pub fn run() -> anyhow::Result<()> {
         Some(("divestment", sub_matches)) => {
             let ctx = com::Context::new(&config);
             client::divestment(ctx, sub_matches)?;
+        }
+        Some(("bot", _sub_matches)) => {
+            let ctx = com::Context::new(&config);
+            app::run(ctx)?
         }
         Some((ext, sub_matches)) => {
             let args = sub_matches

@@ -4,7 +4,7 @@ use {
     anchor_client::solana_sdk::commitment_config::CommitmentConfig,
     log::{debug, error, info},
     solana_account_decoder::UiAccountEncoding,
-    solana_client::nonblocking::pubsub_client,
+    solana_client::nonblocking::{pubsub_client, rpc_client},
     solana_client::rpc_config::{RpcAccountInfoConfig, RpcProgramAccountsConfig},
     tokio::{self, sync::watch},
     tokio_stream::StreamExt,
@@ -39,7 +39,7 @@ impl SubClient {
                 filters: None,
                 account_config: RpcAccountInfoConfig {
                     encoding: Some(UiAccountEncoding::Base64Zstd),
-                    commitment: Some(CommitmentConfig::processed()),
+                    commitment: Some(CommitmentConfig::finalized()),
                     data_slice: None,
                     min_context_slot: None,
                 },
@@ -57,10 +57,17 @@ impl SubClient {
                 tokio::select! {
                     response = s.next() => {
                         match response {
-                            Some(account)=>{
-                                let pda_pubkey = account.value.pubkey;
-                                let pda_account:Option<Account> = account.value.account.decode();
-                                debug!("got account: {:?} data: {:#?}",pda_pubkey,pda_account);
+                            Some(i_account)=>{
+                                let pda_pubkey = i_account.value.pubkey;
+                                let pda_account:Option<Account> = i_account.value.account.decode();
+                                match pda_account {
+                                    Some(account)=>{
+                                        debug!("got account: {:?} data: {:#?},len:{}",pda_pubkey,account,account.data.len());
+                                    }
+                                    None=>{
+                                        error!("Can not decode account,got None");
+                                    }
+                                }
                             }
                             None=>{
                                 info!("message channel close");
@@ -88,5 +95,13 @@ impl SubClient {
         if let Err(err) = self.close_tx.send(true) {
             error!("can'n send close message:{:?}", err);
         }
+    }
+
+    pub fn get_all_program_accounts(&self, ctx: com::Context) {
+        let client = rpc_client::RpcClient::new(ctx.config.cluster.url().to_string());
+        let id = com::id();
+        self.runtime.spawn(async move {
+            let accounts = client.get_program_accounts(&id);
+        });
     }
 }

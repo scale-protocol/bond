@@ -16,25 +16,32 @@ pub enum CliError {
     SubscriptionAccountFailed(String),
     #[error("Can not create tokio runtime: {0}")]
     TokioRuntimeCreateField(String),
+    #[error("Can not create local db:{0}")]
+    DBError(String),
+    #[error("Error in json parsing:{0}")]
+    JsonError(String),
+    #[error("deserialize error:{0}")]
+    DeserializeError(String),
 }
 pub fn id() -> Pubkey {
     Pubkey::try_from("3CuC9qc7ehNu3MrGrqDMu6it2g71dFJTKn7184sb1TuJ").unwrap()
 }
 pub struct Context<'a> {
     pub config: &'a config::Config,
-    pub client: anchor_client::Client,
+    pub client: &'a anchor_client::Client,
 }
 
 impl<'a> Context<'a> {
-    pub fn new(c: &'a config::Config) -> Self {
+    pub fn new(config: &'a config::Config, client: &'a anchor_client::Client) -> Self {
+        Self { config, client }
+    }
+
+    pub fn new_client(c: &'a config::Config) -> anchor_client::Client {
         let payer = read_keypair_file(&c.wallet).expect("Cant not init wallet keypair");
-        Self {
-            config: c,
-            client: anchor_client::Client::new_with_options(
-                c.cluster.clone(),
-                Rc::new(payer),
-                CommitmentConfig::processed(),
-            ),
-        }
+        anchor_client::Client::new_with_options(
+            c.cluster.clone(),
+            Rc::new(payer),
+            CommitmentConfig::processed(),
+        )
     }
 }

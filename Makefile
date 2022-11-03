@@ -1,7 +1,7 @@
 localmint:
-	spl-token create-token --decimals 2 -- local_mint.json
+	spl-token create-token --decimals 6 -- local_mint.json
 	spl-token create-account -- local_mint.json
-	spl-token mint 5Uzq44UgPkPNxG4E4m4m7F8fsnrHKc4jFvFuPapV4jN2 1000000
+	spl-token mint 5Uzq44UgPkPNxG4E4m4m7F8fsnrHKc4jFvFuPapV4jN2 10000000000
 initvault:
 	cargo run -p cli -- init_vault
 initmarket:

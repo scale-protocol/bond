@@ -66,15 +66,15 @@ impl Market {
     pub fn get_price(
         &self,
         price_account_info_pyth: &AccountInfo,
-        _price_account_info_chinalink: &AccountInfo,
+        price_account_info_chinalink: &AccountInfo,
     ) -> Result<Price> {
-        let p = price::get_price(price_account_info_pyth)?;
+        let p = price::get_price(price_account_info_pyth, price_account_info_chinalink)?;
         let spread = com::f64_round(p * self.spread);
         Ok(Price {
             buy_price: com::f64_round(p + spread),
             sell_price: com::f64_round(p - spread),
             real_price: p,
-            spread: spread,
+            spread,
         })
     }
     pub fn get_exposure(&self) -> f64 {

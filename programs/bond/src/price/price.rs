@@ -3,7 +3,10 @@ use crate::errors::BondError;
 use anchor_lang::prelude::*;
 use pyth_sdk_solana::{load_price_feed_from_account_info, Price, PriceFeed};
 
-pub fn get_price(price_account_info: &AccountInfo) -> Result<f64> {
+pub fn get_price(
+    price_account_info: &AccountInfo,
+    _price_account_info_chinalink: &AccountInfo,
+) -> Result<f64> {
     get_price_from_pyth(price_account_info)
     // todo ,if error then get price from chainlink
 }

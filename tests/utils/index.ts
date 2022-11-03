@@ -17,7 +17,7 @@ export default async function initSplAccounts({ provider }) {
         encoding: "utf-8",
     }))));
     // Create new token mint
-    const mint = await createMint(connection, fromWallet, fromWallet.publicKey, null, 2, mintKeypair);
+    const mint = await createMint(connection, fromWallet, fromWallet.publicKey, null, 6, mintKeypair);
 
     // Get the token account of the fromWallet address, and if it does not exist, create it
     const fromTokenAccount = await getOrCreateAssociatedTokenAccount(

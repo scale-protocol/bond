@@ -3,7 +3,7 @@ use log::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use tokio::{runtime::Builder, signal};
 
-use super::sub;
+use super::{machine, sub};
 
 pub fn run(ctx: com::Context) -> anyhow::Result<()> {
     let threads: usize = 1;
@@ -17,10 +17,24 @@ pub fn run(ctx: com::Context) -> anyhow::Result<()> {
         .enable_all()
         .build()
         .map_err(|e| com::CliError::TokioRuntimeCreateField(e.to_string()))?;
+    let mut sate_map = machine::StateMap::new(ctx.config.clone())?;
 
-    let sub = sub::SubClient::new(runtime);
-    sub.subscribe_program_accounts(ctx)?;
-    let s = sub.runtime.block_on(async { signal::ctrl_c().await });
+    sate_map.load_active_account_from_local()?;
+
+    let config = ctx.config.clone();
+
+    let task = runtime.spawn(async move {
+        let watch = machine::Watch::new(sate_map).await;
+        let sub = sub::SubAccount::new(
+            config,
+            watch.account_watch_tx.clone(),
+            watch.price_watch_tx.clone(),
+        )
+        .await;
+        (watch, sub)
+    });
+
+    let s = runtime.block_on(async { signal::ctrl_c().await });
     match s {
         Ok(()) => {
             info!("got exit signal...Start execution exit.")
@@ -29,6 +43,11 @@ pub fn run(ctx: com::Context) -> anyhow::Result<()> {
             error!("Unable to listen for shutdown signal: {}", err);
         }
     }
-    sub.stop();
+    runtime.block_on(async {
+        let (wt, sb) = task.await.unwrap();
+        wt.shutdown().await;
+        sb.shutdown().await;
+        info!("robot server shutdown!");
+    });
     Ok(())
 }

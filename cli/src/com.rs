@@ -22,6 +22,8 @@ pub enum CliError {
     JsonError(String),
     #[error("deserialize error:{0}")]
     DeserializeError(String),
+    #[error("get price error{0}")]
+    PriceError(String),
 }
 pub fn id() -> Pubkey {
     Pubkey::try_from("3CuC9qc7ehNu3MrGrqDMu6it2g71dFJTKn7184sb1TuJ").unwrap()
@@ -44,4 +46,7 @@ impl<'a> Context<'a> {
             CommitmentConfig::processed(),
         )
     }
+}
+pub fn f64_round(f: f64) -> f64 {
+    (f * 100.0).round() / 100.0
 }

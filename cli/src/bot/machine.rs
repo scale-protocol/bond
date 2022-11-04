@@ -1,17 +1,14 @@
-use super::storage;
-use crate::com;
+use super::{price, storage};
+use crate::{com, config};
 use anchor_client::anchor_lang::AccountDeserialize;
 use anchor_client::solana_sdk::{account::Account, pubkey::Pubkey};
 use bond::state::{market, position, user};
+use dashmap::DashMap;
 use log::{debug, error, info};
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use tokio::{
-    net::TcpStream,
     sync::{mpsc, oneshot},
     task::JoinHandle,
-    time::{sleep, Duration},
 };
 pub enum State {
     Market(market::Market),
@@ -60,28 +57,44 @@ impl<'a> From<&'a Account> for State {
         }
     }
 }
+
+type DmMarket = DashMap<Pubkey, market::Market>;
+type DmUser = DashMap<Pubkey, user::UserAccount>;
+type DmPosition = DashMap<Pubkey, position::Position>;
+type DmPrice = DashMap<Pubkey, market::Price>;
+// key is price account,value is market account
+type DmIdxPriceMarket = DashMap<Pubkey, Pubkey>;
+
+#[derive(Clone)]
 pub struct StateMap {
-    pub market: HashMap<Pubkey, market::Market>,
-    pub user: HashMap<Pubkey, user::UserAccount>,
-    pub position: HashMap<Pubkey, position::Position>,
+    pub market: DmMarket,
+    pub user: DmUser,
+    pub position: DmPosition,
+    pub price_account: DmPrice,
+    pub price_idx_price_account: DmIdxPriceMarket,
     storage: storage::Storage,
 }
 
 impl StateMap {
-    pub fn new(ctx: com::Context) -> anyhow::Result<Self> {
-        let storage = storage::Storage::new(&ctx)?;
-        let market: HashMap<Pubkey, market::Market> = HashMap::new();
-        let user: HashMap<Pubkey, user::UserAccount> = HashMap::new();
-        let position: HashMap<Pubkey, position::Position> = HashMap::new();
+    pub fn new(config: config::Config) -> anyhow::Result<Self> {
+        let storage = storage::Storage::new(config)?;
+        let market: DmMarket = DashMap::new();
+        let user: DmUser = DashMap::new();
+        let position: DmPosition = DashMap::new();
+        let price_account: DmPrice = DashMap::new();
+        let price_idx_price_account: DmIdxPriceMarket = DashMap::new();
         Ok(Self {
             market,
             user,
             position,
             storage,
+            price_account,
+            price_idx_price_account,
         })
     }
 
     pub fn load_active_account_from_local(&mut self) -> anyhow::Result<()> {
+        info!("start load active account from local!");
         let p = storage::Prefix::Active;
         let px = (&p).prefix();
         let r = self.storage.scan_prefix(&p);
@@ -115,6 +128,7 @@ impl StateMap {
                 }
             }
         }
+        info!("complete load active account from local!");
         Ok(())
     }
 }
@@ -126,7 +140,7 @@ pub struct Watch {
     aw: JoinHandle<anyhow::Result<()>>,
     pw: JoinHandle<anyhow::Result<()>>,
 }
-// type WatchRx=UnboundedSender<(Pubkey, Account);
+
 impl Watch {
     pub async fn new(mp: StateMap) -> Self {
         let (account_watch_tx, account_watch_rx) = mpsc::unbounded_channel::<(Pubkey, Account)>();
@@ -138,10 +152,15 @@ impl Watch {
             price_shutdown_tx,
             account_watch_tx,
             price_watch_tx,
-            aw: tokio::spawn(watch_account(mp, account_watch_rx, account_shutdown_rx)),
-            pw: tokio::spawn(watch_price(price_watch_rx, price_shutdown_rx)),
+            aw: tokio::spawn(watch_account(
+                mp.clone(),
+                account_watch_rx,
+                account_shutdown_rx,
+            )),
+            pw: tokio::spawn(watch_price(mp.clone(), price_watch_rx, price_shutdown_rx)),
         }
     }
+
     pub async fn shutdown(self) {
         let _ = self.account_shutdown_tx.send(());
         let _ = self.aw.await;
@@ -155,7 +174,7 @@ async fn watch_account(
     mut watch_rx: UnboundedReceiver<(Pubkey, Account)>,
     mut shutdown_rx: oneshot::Receiver<()>,
 ) -> anyhow::Result<()> {
-    info!("start scale program account watch");
+    info!("start scale program account watch ...");
     loop {
         tokio::select! {
             _ = (&mut shutdown_rx) => {
@@ -165,10 +184,13 @@ async fn watch_account(
             r = watch_rx.recv()=>{
                 match r {
                     Some(rs)=>{
-                        let (pubkey,account)=rs;
+                        let (pubkey,account) = rs;
+                        debug!("account channel got data : {:?},{:?}",pubkey,account);
                         keep_account(&mut mp, pubkey, account);
                     }
-                    None=>{}
+                    None=>{
+                        debug!("account channel got none : {:?}",r);
+                    }
                 }
             }
         }
@@ -177,10 +199,11 @@ async fn watch_account(
 }
 
 async fn watch_price(
+    mut mp: StateMap,
     mut watch_rx: UnboundedReceiver<(Pubkey, Account)>,
     mut shutdown_rx: oneshot::Receiver<()>,
 ) -> anyhow::Result<()> {
-    info!("start price account watch");
+    info!("start price account watch...");
     loop {
         tokio::select! {
             _ = (&mut shutdown_rx) => {
@@ -190,7 +213,8 @@ async fn watch_price(
             r = watch_rx.recv()=>{
                 match r {
                     Some(rs)=>{
-                        let (pubkey,account)=rs;
+                        let (pubkey,account) = rs;
+                        keep_price(&mut mp, pubkey, account);
                     }
                     None=>{}
                 }
@@ -200,15 +224,51 @@ async fn watch_price(
     Ok(())
 }
 
+fn keep_price(mp: &mut StateMap, pubkey: Pubkey, mut account: Account) {
+    match mp.price_idx_price_account.get(&pubkey) {
+        Some(k) => match mp.market.get(&k) {
+            Some(m) => match price::get_price_from_pyth(&pubkey, &mut account) {
+                Ok(p) => {
+                    let spread = com::f64_round(p * m.spread);
+                    let price = market::Price {
+                        buy_price: com::f64_round(p + spread),
+                        sell_price: com::f64_round(p - spread),
+                        real_price: p,
+                        spread,
+                    };
+                    mp.price_account.insert(pubkey, price);
+                }
+                Err(e) => {
+                    error!("{}", e);
+                }
+            },
+            None => {
+                error!("keep price error,get index but cannot get market data");
+            }
+        },
+        None => {
+            debug!(
+                "Can not found market of price account,ignore it .{}",
+                pubkey
+            );
+        }
+    }
+}
 fn keep_account(mp: &mut StateMap, pubkey: Pubkey, account: Account) {
     let s: State = (&account).into();
     match s {
         State::Market(m) => {
+            let pyth_account = m.pyth_price_account;
+            let chainlink_account = m.chianlink_price_account;
             if account.lamports <= 0 {
                 mp.market.remove(&pubkey);
+                mp.price_idx_price_account.remove(&pyth_account);
+                mp.price_idx_price_account.remove(&chainlink_account);
                 save_as_history(mp, pubkey, account);
             } else {
                 mp.market.insert(pubkey, m);
+                mp.price_idx_price_account.insert(pyth_account, pubkey);
+                mp.price_idx_price_account.insert(chainlink_account, pubkey);
                 save_to_active(mp, pubkey, account);
             }
         }
@@ -233,32 +293,33 @@ fn keep_account(mp: &mut StateMap, pubkey: Pubkey, account: Account) {
                 save_to_active(mp, pubkey, account);
             }
         }
-        State::None => {}
+        State::None => {
+            error!(
+                "Unrecognized structure of account:{:?},{:?}",
+                pubkey, account
+            );
+        }
     }
 }
+
 fn save_as_history(mp: &StateMap, pubkey: Pubkey, account: Account) {
     match mp.storage.save_as_history(&pubkey, &account) {
         Ok(()) => {
-            debug!("save a account as history success!");
+            debug!("save a account as history success!,account:{}", pubkey);
         }
         Err(e) => {
-            error!("save a account as history error:{}", e);
+            error!("save a account as history error:{},account:{}", e, pubkey);
         }
     }
 }
+
 fn save_to_active(mp: &StateMap, pubkey: Pubkey, account: Account) {
     match mp.storage.save_to_active(&pubkey, &account) {
         Ok(()) => {
-            debug!("save a account as active success!");
+            debug!("save a account as active success!,account:{}", pubkey);
         }
         Err(e) => {
-            error!("save a account as active error:{}", e);
+            error!("save a account as active error:{},account:{}", e, pubkey);
         }
     }
-}
-pub struct Price {
-    pub buy_price: f64,
-    pub sell_price: f64,
-    pub real_price: f64,
-    pub spread: f64,
 }

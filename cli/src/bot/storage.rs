@@ -1,4 +1,4 @@
-use crate::com;
+use crate::{com, config};
 use anchor_client::solana_sdk::{account::Account, pubkey::Pubkey};
 use sled::{Batch, Db};
 use std::fmt;
@@ -26,15 +26,17 @@ impl fmt::Display for Prefix {
         write!(f, "{}", t)
     }
 }
+#[derive(Clone)]
 pub struct Storage {
     db: Db,
 }
 impl Storage {
-    pub fn new(ctx: &com::Context) -> anyhow::Result<Self> {
-        let path = ctx.config.store_path.join("accounts");
+    pub fn new(config: config::Config) -> anyhow::Result<Self> {
+        let path = config.store_path.join("accounts");
         let db = sled::open(path).map_err(|e| com::CliError::DBError(e.to_string()))?;
         Ok(Self { db })
     }
+
     // Active load Active account
     pub fn scan_prefix(&self, p: &Prefix) -> sled::Iter {
         let px = p.prefix();
@@ -47,12 +49,15 @@ impl Storage {
         self.db.insert(key.as_bytes(), value)?;
         Ok(())
     }
+
     pub fn save_to_active(&self, pubkey: &Pubkey, account: &Account) -> anyhow::Result<()> {
         self.save_one(pubkey, account, Prefix::Active)
     }
+
     pub fn save_to_history(&self, pubkey: &Pubkey, account: &Account) -> anyhow::Result<()> {
         self.save_one(pubkey, account, Prefix::History)
     }
+
     pub fn save_as_history(&self, pubkey: &Pubkey, account: &Account) -> anyhow::Result<()> {
         let p = Prefix::Active;
         let history_p = Prefix::History;

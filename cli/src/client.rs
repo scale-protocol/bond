@@ -19,7 +19,7 @@ pub fn init_vault(ctx: com::Context) -> anyhow::Result<()> {
         .accounts(accounts::InitializeVault {
             initializer: program.payer(),
             vault_account: vault_account,
-            token_mint: bcom::base_account::get_vault_mint(),
+            token_mint: ctx.config.accounts.spl_mint,
             system_program: system_program::id(),
             token_program: spl_token::id(),
             rent: solana_program::sysvar::rent::id(),
@@ -108,7 +108,7 @@ pub fn deposit(ctx: com::Context, args: &clap::ArgMatches) -> anyhow::Result<()>
 
     let (vault_account, _bump) =
         Pubkey::find_program_address(&[bcom::VAULT_TOKEN_ACCOUNT_SEED], &com::id());
-    let mint = bcom::base_account::get_vault_mint();
+    let mint = ctx.config.accounts.spl_mint;
     let user_token_account =
         spl_associated_token_account::get_associated_token_address(&program.payer(), &mint);
     let tx = program
@@ -206,12 +206,42 @@ pub fn open_position(ctx: com::Context, args: &clap::ArgMatches) -> anyhow::Resu
             market_account_btc,
             market_account_eth,
             market_account_sol,
-            pyth_price_account_btc: bcom::base_account::get_pyth_price_account_btc(),
-            pyth_price_account_eth: bcom::base_account::get_pyth_price_account_eth(),
-            pyth_price_account_sol: bcom::base_account::get_pyth_price_account_sol(),
-            chainlink_price_account_btc: bcom::base_account::get_chainlink_price_account_btc(),
-            chainlink_price_account_eth: bcom::base_account::get_chainlink_price_account_eth(),
-            chainlink_price_account_sol: bcom::base_account::get_chainlink_price_account_sol(),
+            pyth_price_account_btc: *ctx
+                .config
+                .accounts
+                .pyth
+                .get(&bcom::FullPositionMarket::BtcUsd.to_string())
+                .unwrap(),
+            pyth_price_account_eth: *ctx
+                .config
+                .accounts
+                .pyth
+                .get(&bcom::FullPositionMarket::EthUsd.to_string())
+                .unwrap(),
+            pyth_price_account_sol: *ctx
+                .config
+                .accounts
+                .pyth
+                .get(&bcom::FullPositionMarket::SolUsd.to_string())
+                .unwrap(),
+            chainlink_price_account_btc: *ctx
+                .config
+                .accounts
+                .chainlink
+                .get(&bcom::FullPositionMarket::BtcUsd.to_string())
+                .unwrap(),
+            chainlink_price_account_eth: *ctx
+                .config
+                .accounts
+                .chainlink
+                .get(&bcom::FullPositionMarket::EthUsd.to_string())
+                .unwrap(),
+            chainlink_price_account_sol: *ctx
+                .config
+                .accounts
+                .chainlink
+                .get(&bcom::FullPositionMarket::SolUsd.to_string())
+                .unwrap(),
             system_program: system_program::id(),
         })
         .args(instruction::OpenPosition {
@@ -343,7 +373,7 @@ pub fn investment(ctx: com::Context, args: &clap::ArgMatches) -> anyhow::Result<
 
     let (vault_token_account, _bump) =
         Pubkey::find_program_address(&[bcom::VAULT_TOKEN_ACCOUNT_SEED], &com::id());
-    let mint = bcom::base_account::get_vault_mint();
+    let mint = ctx.config.accounts.spl_mint;
     let user_token_account =
         spl_associated_token_account::get_associated_token_address(&program.payer(), &mint);
     let tx = program
@@ -392,7 +422,7 @@ pub fn divestment(ctx: com::Context, args: &clap::ArgMatches) -> anyhow::Result<
 
     let (pda_authority_account, _vbump) =
         Pubkey::find_program_address(&[bcom::VAULT_TOKEN_AUTHORITY_SEED], &com::id());
-    let mint = bcom::base_account::get_vault_mint();
+    let mint = ctx.config.accounts.spl_mint;
     let user_token_account =
         spl_associated_token_account::get_associated_token_address(&program.payer(), &mint);
     let tx = program

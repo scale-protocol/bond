@@ -1,17 +1,57 @@
 use crate::{com, config};
-use anchor_client::solana_sdk::{account::Account, pubkey::Pubkey};
+use anchor_client::solana_sdk::account::Account;
 use sled::{Batch, Db};
 use std::fmt;
+use std::str::FromStr;
 
 pub enum Prefix {
     Active = 1,
     History,
+    None,
+}
+#[derive(Clone)]
+pub struct Keys {
+    keys: Vec<String>,
+}
+
+impl Keys {
+    pub fn new(p: Prefix) -> Self {
+        let keys = vec![p.to_string()];
+        Self { keys }
+    }
+
+    pub fn set_prefix(&mut self, p: Prefix) -> &Self {
+        self.keys[0] = p.to_string();
+        self
+    }
+
+    pub fn add(mut self, s: String) -> Self {
+        self.keys.push(s);
+        self
+    }
+
+    pub fn get_prefix(&self) -> Prefix {
+        Prefix::from_str(self.keys.get(0).unwrap()).unwrap()
+    }
+
+    pub fn get(&self, i: usize) -> String {
+        let s = self.keys.get(i);
+        match s {
+            Some(s) => (*s).clone(),
+            None => "".to_string(),
+        }
+    }
+
+    pub fn get_end(&self) -> String {
+        self.get(self.keys.len() - 1)
+    }
+
+    pub fn get_storage_key(&self) -> String {
+        self.keys.join("_")
+    }
 }
 
 impl Prefix {
-    pub fn get_storage_key(self, pubkey: &Pubkey) -> String {
-        format!("{}_{}", self.to_string(), pubkey.to_string())
-    }
     pub fn prefix(&self) -> String {
         format!("{}_", self.to_string())
     }
@@ -22,8 +62,29 @@ impl fmt::Display for Prefix {
         let t = match *self {
             Self::Active => "active",
             Self::History => "history",
+            _ => "",
         };
         write!(f, "{}", t)
+    }
+}
+
+impl FromStr for Prefix {
+    type Err = anyhow::Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let r = match s {
+            "active" => Prefix::Active,
+            "history" => Prefix::History,
+            _ => Prefix::None,
+        };
+        Ok(r)
+    }
+}
+impl FromStr for Keys {
+    type Err = anyhow::Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let keys: Vec<&str> = s.split("_").collect();
+        let keys = keys.iter().map(|s| s.to_string()).collect();
+        Ok(Keys { keys })
     }
 }
 #[derive(Clone)]
@@ -43,28 +104,28 @@ impl Storage {
         self.db.scan_prefix(px.as_bytes())
     }
 
-    fn save_one(&self, pubkey: &Pubkey, account: &Account, p: Prefix) -> anyhow::Result<()> {
+    fn save_one(&self, ks: &Keys, account: &Account) -> anyhow::Result<()> {
         let value = serde_json::to_vec(account)?;
-        let key = p.get_storage_key(pubkey);
+        let key = ks.get_storage_key();
         self.db.insert(key.as_bytes(), value)?;
         Ok(())
     }
 
-    pub fn save_to_active(&self, pubkey: &Pubkey, account: &Account) -> anyhow::Result<()> {
-        self.save_one(pubkey, account, Prefix::Active)
+    pub fn save_to_active(&self, ks: &Keys, account: &Account) -> anyhow::Result<()> {
+        self.save_one(ks, account)
     }
 
-    pub fn save_to_history(&self, pubkey: &Pubkey, account: &Account) -> anyhow::Result<()> {
-        self.save_one(pubkey, account, Prefix::History)
+    pub fn save_to_history(&self, ks: &mut Keys, account: &Account) -> anyhow::Result<()> {
+        ks.set_prefix(Prefix::History);
+        self.save_one(ks, account)
     }
 
-    pub fn save_as_history(&self, pubkey: &Pubkey, account: &Account) -> anyhow::Result<()> {
-        let p = Prefix::Active;
-        let history_p = Prefix::History;
+    pub fn save_as_history(&self, ks: &mut Keys, account: &Account) -> anyhow::Result<()> {
         let value = serde_json::to_vec(account)?;
         let value = value.as_slice();
-        let key = p.get_storage_key(pubkey);
-        let history_key = history_p.get_storage_key(pubkey);
+        let key = ks.get_storage_key();
+        ks.set_prefix(Prefix::History);
+        let history_key = ks.get_storage_key();
         self.db
             .transaction::<_, (), anyhow::Error>(|tx| {
                 tx.remove(key.as_bytes())?;
@@ -75,11 +136,11 @@ impl Storage {
         Ok(())
     }
 
-    pub fn save_batch(&self, kv: Vec<(&Pubkey, &Account, Prefix)>) -> anyhow::Result<()> {
+    pub fn save_batch(&self, kv: Vec<(&Keys, &Account)>) -> anyhow::Result<()> {
         let mut batch = Batch::default();
         for v in kv {
             let value = serde_json::to_vec(v.1)?;
-            let key = v.2.get_storage_key(v.0);
+            let key = v.0.get_storage_key();
             batch.insert(key.as_bytes(), value);
         }
         Ok(())

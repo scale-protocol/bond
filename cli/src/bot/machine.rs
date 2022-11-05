@@ -5,6 +5,8 @@ use anchor_client::solana_sdk::{account::Account, pubkey::Pubkey};
 use bond::state::{market, position, user};
 use dashmap::DashMap;
 use log::{debug, error, info};
+use std::fmt;
+use std::str::FromStr;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use tokio::{
     sync::{mpsc, oneshot},
@@ -16,10 +18,21 @@ pub enum State {
     Position(position::Position),
     None,
 }
-
+impl fmt::Display for State {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let t = match *self {
+            Self::Market(_) => "market",
+            Self::User(_) => "user",
+            Self::Position(_) => "position",
+            _ => "",
+        };
+        write!(f, "{}", t)
+    }
+}
 impl<'a> From<&'a Account> for State {
     fn from(account: &'a Account) -> Self {
-        match account.data.len() {
+        let len = account.data.len() - 8;
+        match len {
             market::Market::LEN => {
                 let mut data: &[u8] = &account.data;
                 let t = market::Market::try_deserialize(&mut data);
@@ -96,17 +109,18 @@ impl StateMap {
     pub fn load_active_account_from_local(&mut self) -> anyhow::Result<()> {
         info!("start load active account from local!");
         let p = storage::Prefix::Active;
-        let px = (&p).prefix();
         let r = self.storage.scan_prefix(&p);
         for i in r {
             match i {
                 Ok((k, v)) => {
                     let key = String::from_utf8(k.to_vec())
                         .map_err(|e| com::CliError::JsonError(e.to_string()))?;
-                    let pk = &key[px.len()..];
-                    debug!("got pubkey from db:{}", pk);
-                    let pbk =
-                        Pubkey::try_from(pk).map_err(|e| com::CliError::Unknown(e.to_string()))?;
+                    let keys = storage::Keys::from_str(key.as_str())?;
+                    debug!("load account from db: {}", keys.get_storage_key());
+                    let pk = keys.get_end();
+                    debug!("load pubkey from db : {}", pk);
+                    let pbk = Pubkey::try_from(pk.as_str())
+                        .map_err(|e| com::CliError::Unknown(e.to_string()))?;
                     let values: Account = serde_json::from_slice(v.to_vec().as_slice())
                         .map_err(|e| com::CliError::JsonError(e.to_string()))?;
                     let s: State = (&values).into();
@@ -256,41 +270,50 @@ fn keep_price(mp: &mut StateMap, pubkey: Pubkey, mut account: Account) {
 }
 fn keep_account(mp: &mut StateMap, pubkey: Pubkey, account: Account) {
     let s: State = (&account).into();
+    let tag = s.to_string();
+    let keys = storage::Keys::new(storage::Prefix::Active);
+
     match s {
         State::Market(m) => {
             let pyth_account = m.pyth_price_account;
             let chainlink_account = m.chianlink_price_account;
+            let mut keys = keys.add(tag).add(pubkey.to_string());
             if account.lamports <= 0 {
                 mp.market.remove(&pubkey);
                 mp.price_idx_price_account.remove(&pyth_account);
                 mp.price_idx_price_account.remove(&chainlink_account);
-                save_as_history(mp, pubkey, account);
+                save_as_history(mp, &mut keys, &account);
             } else {
                 mp.market.insert(pubkey, m);
                 mp.price_idx_price_account.insert(pyth_account, pubkey);
                 mp.price_idx_price_account.insert(chainlink_account, pubkey);
-                save_to_active(mp, pubkey, account);
+                save_to_active(mp, &mut keys, &account);
             }
         }
         State::User(m) => {
+            let mut keys = keys.add(tag).add(pubkey.to_string());
             if account.lamports <= 0 {
                 mp.user.remove(&pubkey);
-                save_as_history(mp, pubkey, account);
+                save_as_history(mp, &mut keys, &account);
             } else {
                 mp.user.insert(pubkey, m);
-                save_to_active(mp, pubkey, account);
+                save_to_active(mp, &mut keys, &account);
             }
         }
         State::Position(m) => {
+            let mut keys = keys
+                .add(tag)
+                .add(m.authority.to_string())
+                .add(pubkey.to_string());
             if account.lamports <= 0
                 || m.position_status == position::PositionStatus::NormalClosing
                 || m.position_status == position::PositionStatus::ForceClosing
             {
                 mp.position.remove(&pubkey);
-                save_as_history(mp, pubkey, account);
+                save_as_history(mp, &mut keys, &account);
             } else {
                 mp.position.insert(pubkey, m);
-                save_to_active(mp, pubkey, account);
+                save_to_active(mp, &mut keys, &account);
             }
         }
         State::None => {
@@ -302,24 +325,38 @@ fn keep_account(mp: &mut StateMap, pubkey: Pubkey, account: Account) {
     }
 }
 
-fn save_as_history(mp: &StateMap, pubkey: Pubkey, account: Account) {
-    match mp.storage.save_as_history(&pubkey, &account) {
+fn save_as_history(mp: &StateMap, ks: &mut storage::Keys, account: &Account) {
+    match mp.storage.save_as_history(ks, account) {
         Ok(()) => {
-            debug!("save a account as history success!,account:{}", pubkey);
+            debug!(
+                "save a account as history success!,account:{}",
+                ks.get_storage_key()
+            );
         }
         Err(e) => {
-            error!("save a account as history error:{},account:{}", e, pubkey);
+            error!(
+                "save a account as history error:{},account:{}",
+                e,
+                ks.get_storage_key()
+            );
         }
     }
 }
 
-fn save_to_active(mp: &StateMap, pubkey: Pubkey, account: Account) {
-    match mp.storage.save_to_active(&pubkey, &account) {
+fn save_to_active(mp: &StateMap, ks: &mut storage::Keys, account: &Account) {
+    match mp.storage.save_to_active(ks, account) {
         Ok(()) => {
-            debug!("save a account as active success!,account:{}", pubkey);
+            debug!(
+                "save a account as active success!,account:{}",
+                ks.get_storage_key()
+            );
         }
         Err(e) => {
-            error!("save a account as active error:{},account:{}", e, pubkey);
+            error!(
+                "save a account as active error:{},account:{}",
+                e,
+                ks.get_storage_key()
+            );
         }
     }
 }

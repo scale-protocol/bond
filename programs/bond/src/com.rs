@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::mint;
+// use anchor_spl::mint;
 use std::convert::TryFrom;
 use std::fmt;
 
@@ -26,13 +26,14 @@ pub const MARKET_ACCOUNT_SEED: &[u8] = b"scale_market_account";
 pub const POSITION_ACCOUNT_SEED: &[u8] = b"scale_position_account";
 
 // pub const PRICE_ACCOUNT:[]
-#[cfg(feature = "mainnetbeta")]
+#[cfg(feature = "mainnet")]
 pub mod base_account {
     use super::*;
     /// Mint address of the vault token, the test version is the circulating token issued by the project,
     /// and the official network is USDC
     pub fn get_vault_mint() -> Pubkey {
-        mint::USDC
+        // mint::USDC
+        Pubkey::try_from("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v").unwrap()
     }
 
     /// Address of project development fund wallet

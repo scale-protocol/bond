@@ -63,6 +63,7 @@ impl SubAccount {
         let id = com::id();
         let accounts = client.get_program_accounts(&id).await?;
         for a in accounts {
+            debug!("get all program accounts for rpc node:{}", a.0);
             match watch_tx.send(a) {
                 Ok(()) => {}
                 Err(e) => {

@@ -313,6 +313,7 @@ pyth  program account: {} "#,
         self.cluster = s.cluster;
         self.store_path = s.store_path;
         self.wallet = s.wallet;
+        self.keypair = s.keypair;
         Ok(())
     }
 }

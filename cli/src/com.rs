@@ -5,7 +5,9 @@ use thiserror::Error;
 
 use crate::config;
 use anchor_client::solana_sdk::commitment_config::CommitmentConfig;
-use anchor_client::solana_sdk::signature::read_keypair_file;
+use anchor_client::solana_sdk::signature;
+use std::io::Cursor;
+
 #[derive(Error, Debug)]
 pub enum CliError {
     #[error("Unknown error: {0}")]
@@ -24,6 +26,8 @@ pub enum CliError {
     DeserializeError(String),
     #[error("get price error{0}")]
     PriceError(String),
+    #[error("new wallet keypair error:{0}")]
+    KeypairError(String),
 }
 pub fn id() -> Pubkey {
     Pubkey::try_from("3CuC9qc7ehNu3MrGrqDMu6it2g71dFJTKn7184sb1TuJ").unwrap()
@@ -38,13 +42,15 @@ impl<'a> Context<'a> {
         Self { config, client }
     }
 
-    pub fn new_client(c: &'a config::Config) -> anchor_client::Client {
-        let payer = read_keypair_file(&c.wallet).expect("Cant not init wallet keypair");
-        anchor_client::Client::new_with_options(
+    pub fn new_client(c: &'a config::Config) -> anyhow::Result<anchor_client::Client> {
+        let mut buff = Cursor::new(c.keypair.clone());
+        let kp = signature::read_keypair(&mut buff)
+            .map_err(|e| CliError::KeypairError(e.to_string()))?;
+        Ok(anchor_client::Client::new_with_options(
             c.cluster.clone(),
-            Rc::new(payer),
+            Rc::new(kp),
             CommitmentConfig::processed(),
-        )
+        ))
     }
 }
 pub fn f64_round(f: f64) -> f64 {

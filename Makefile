@@ -28,4 +28,5 @@ openposition:
 closeposition:
 	cargo run -p cli -- close_position -o 1
 bot:
+	export RUST_LOG=debug
 	cargo run -p cli -- bot

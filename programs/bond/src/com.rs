@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::pubkey;
 // use anchor_spl::mint;
 use std::convert::TryFrom;
 use std::fmt;
@@ -204,6 +205,15 @@ pub enum FullPositionMarket {
     EthUsd,
     SolUsd,
     None,
+}
+
+impl FullPositionMarket {
+    pub fn to_pubkey(self) -> (Pubkey, u8) {
+        Pubkey::find_program_address(
+            &[MARKET_ACCOUNT_SEED, self.to_string().as_bytes()],
+            &crate::id(),
+        )
+    }
 }
 
 impl<'a> From<&'a str> for FullPositionMarket {

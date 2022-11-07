@@ -143,7 +143,7 @@ async fn subscribe_program_accounts(
                 }
             }
             _ = (&mut shutdown_rx) => {
-                info!("got shutdown signal，account sub exit.");
+                info!("got shutdown signal,account sub exit.");
                 break;
             },
         }

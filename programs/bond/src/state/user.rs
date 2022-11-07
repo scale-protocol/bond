@@ -46,7 +46,7 @@ pub struct UserAccount {
 /// You can only keep so many order indexes at most.
 /// To view all orders, you need to traverse from the beginning
 /// We are still determining the range of this value depending on the node calculation force and use cost
-pub const MAX_INDEX_SIZE: usize = 961;
+pub const MAX_INDEX_SIZE: usize = 861;
 /// Number of full warehouses allowed to be opened
 /// We are still determining the range of this value depending on the node calculation force and use cost
 pub const MAX_OPEN_FULL_POSITION_SET_SIZE: usize = 100;
@@ -54,7 +54,7 @@ pub const MAX_OPEN_FULL_POSITION_SET_SIZE: usize = 100;
 impl UserAccount {
     /// MAX_INDEX_SIZE=x
     /// MAX_OPEN_FULL_POSITION_SET_SIZE=y
-    /// 8+127+2(4+4x)+(4+24y)=1024*10
+    /// 8+127+2(4+4x)+(4+32y)=1024*10
     /// 8x+24y=10093
     pub const LEN: usize = 32
         + 4

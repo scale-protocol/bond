@@ -109,6 +109,7 @@ pub fn open_position(
         open_price: position_account.open_price,
         direction: position_account.direction,
         size,
+        margin,
         market: com::FullPositionMarket::from(pair.as_str()),
     })?;
     // this is next position offset number
@@ -365,6 +366,7 @@ pub fn close_position(ctx: Context<ClosePosition>) -> Result<()> {
         open_price: position_account.open_price,
         direction: position_account.direction,
         size: position_account.size,
+        margin: position_account.margin,
         market: com::FullPositionMarket::from(market_account.pair.as_str()),
     });
     Ok(())
@@ -403,7 +405,7 @@ pub struct ClosePosition<'info> {
     pub chianlink_price_account: AccountInfo<'info>,
 }
 
-// get the equity
+// get the full position equity
 fn get_equity(ctx: Context<OpenPosition>) -> Result<f64> {
     let account_balance = ctx.accounts.user_account.balance;
     let total_pl = get_pl_price_all_full_position(ctx)?;

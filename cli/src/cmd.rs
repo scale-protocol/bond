@@ -111,47 +111,47 @@ pub fn run() -> anyhow::Result<()> {
             }
         }
         Some(("init_vault", _sub_matches)) => {
-            let client = com::Context::new_client(&config);
+            let client = com::Context::new_client(&config)?;
             let ctx = com::Context::new(&config, &client);
             client::init_vault(ctx)?
         }
         Some(("init_market", sub_matches)) => {
-            let client = com::Context::new_client(&config);
+            let client = com::Context::new_client(&config)?;
             let ctx = com::Context::new(&config, &client);
             client::init_market(ctx, sub_matches)?;
         }
         Some(("init_user", sub_matches)) => {
-            let client = com::Context::new_client(&config);
+            let client = com::Context::new_client(&config)?;
             let ctx = com::Context::new(&config, &client);
             client::init_user(ctx, sub_matches)?;
         }
         Some(("deposit", sub_matches)) => {
-            let client = com::Context::new_client(&config);
+            let client = com::Context::new_client(&config)?;
             let ctx = com::Context::new(&config, &client);
             client::deposit(ctx, sub_matches)?;
         }
         Some(("open_position", sub_matches)) => {
-            let client = com::Context::new_client(&config);
+            let client = com::Context::new_client(&config)?;
             let ctx = com::Context::new(&config, &client);
             client::open_position(ctx, sub_matches)?;
         }
         Some(("close_position", sub_matches)) => {
-            let client = com::Context::new_client(&config);
+            let client = com::Context::new_client(&config)?;
             let ctx = com::Context::new(&config, &client);
             client::close_position(ctx, sub_matches)?;
         }
         Some(("investment", sub_matches)) => {
-            let client = com::Context::new_client(&config);
+            let client = com::Context::new_client(&config)?;
             let ctx = com::Context::new(&config, &client);
             client::investment(ctx, sub_matches)?;
         }
         Some(("divestment", sub_matches)) => {
-            let client = com::Context::new_client(&config);
+            let client = com::Context::new_client(&config)?;
             let ctx = com::Context::new(&config, &client);
             client::divestment(ctx, sub_matches)?;
         }
         Some(("bot", _sub_matches)) => {
-            let client = com::Context::new_client(&config);
+            let client = com::Context::new_client(&config)?;
             let ctx = com::Context::new(&config, &client);
             app::run(ctx)?
         }

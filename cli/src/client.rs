@@ -173,27 +173,9 @@ pub fn open_position(ctx: com::Context, args: &clap::ArgMatches) -> anyhow::Resu
         ],
         &program.id(),
     );
-    let (market_account_btc, _b) = Pubkey::find_program_address(
-        &[
-            bcom::MARKET_ACCOUNT_SEED,
-            bcom::FullPositionMarket::BtcUsd.to_string().as_bytes(),
-        ],
-        &program.id(),
-    );
-    let (market_account_eth, _e) = Pubkey::find_program_address(
-        &[
-            bcom::MARKET_ACCOUNT_SEED,
-            bcom::FullPositionMarket::EthUsd.to_string().as_bytes(),
-        ],
-        &program.id(),
-    );
-    let (market_account_sol, _s) = Pubkey::find_program_address(
-        &[
-            bcom::MARKET_ACCOUNT_SEED,
-            bcom::FullPositionMarket::SolUsd.to_string().as_bytes(),
-        ],
-        &program.id(),
-    );
+    let market_account_btc = bcom::FullPositionMarket::BtcUsd.to_pubkey().0;
+    let market_account_eth = bcom::FullPositionMarket::EthUsd.to_pubkey().0;
+    let market_account_sol = bcom::FullPositionMarket::SolUsd.to_pubkey().0;
     let tx = program
         .request()
         .accounts(accounts::OpenPosition {
@@ -359,6 +341,30 @@ tx:{}"#,
         p.profit,
         tx
     );
+    Ok(())
+}
+pub fn burst_position(
+    client: &anchor_client::Client,
+    user_account: Pubkey,
+    market_account: Pubkey,
+    position_account: Pubkey,
+    pyth_price_account: Pubkey,
+    chianlink_price_account: Pubkey,
+) -> anyhow::Result<()> {
+    let program = client.program(com::id());
+    let tx = program
+        .request()
+        .accounts(accounts::ClosePosition {
+            authority: program.payer(),
+            market_account,
+            pyth_price_account,
+            chianlink_price_account,
+            user_account,
+            position_account,
+        })
+        .send()
+        .map_err(|e| debug_rpc_error(e))?;
+    debug!("burst position success! tx: {}", tx);
     Ok(())
 }
 pub fn investment(ctx: com::Context, args: &clap::ArgMatches) -> anyhow::Result<()> {

@@ -72,7 +72,18 @@ pub enum PositionStatus {
     Pending,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, TryFromPrimitive, PartialEq, Copy)]
+#[derive(
+    AnchorSerialize,
+    AnchorDeserialize,
+    Clone,
+    Debug,
+    TryFromPrimitive,
+    Eq,
+    Ord,
+    PartialEq,
+    PartialOrd,
+    Copy,
+)]
 #[repr(u8)]
 pub enum Direction {
     Buy = 1,
@@ -84,11 +95,12 @@ pub struct PositionHeader {
     pub open_price: f64,
     pub direction: Direction,
     pub size: f64,
+    pub margin: f64,
     pub market: FullPositionMarket,
 }
 
 impl PositionHeader {
-    pub const LEN: usize = 4 + 8 + (1 + 1) + 8 + (1 + 1);
+    pub const LEN: usize = 4 + 8 + (1 + 1) + 8 + 8 + (1 + 1);
     // Floating P/L
     pub fn get_pl_price(&self, p: &market::Price) -> f64 {
         match self.direction {

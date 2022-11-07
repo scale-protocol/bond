@@ -25,6 +25,7 @@ pub struct Config {
     pub wallet: PathBuf,
     pub store_path: PathBuf,
     pub accounts: Accounts,
+    pub keypair: Vec<u8>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfigBody {
@@ -58,6 +59,8 @@ impl From<&Config> for ConfigBody {
 impl From<&ConfigBody> for Config {
     fn from(c: &ConfigBody) -> Self {
         let config = Config::default();
+        let wallet = PathBuf::from(c.keypair_path.clone());
+        let keypair = fs::read(&wallet).expect("Cannot read keypar from local.");
         Self {
             config_file: config.config_file,
             cluster: match c.cluster.as_str() {
@@ -68,9 +71,10 @@ impl From<&ConfigBody> for Config {
                 "mainnet" => Cluster::Mainnet,
                 _ => Cluster::Custom(c.rpc_url.clone(), c.ws_url.clone()),
             },
-            wallet: PathBuf::from(c.keypair_path.clone()),
+            wallet,
             store_path: PathBuf::from(c.store_path.clone()),
             accounts: c.accounts.clone(),
+            keypair,
         }
     }
 }
@@ -123,6 +127,7 @@ impl Default for Config {
                 spl_mint: Pubkey::try_from(SPL_MINT_DEVNET).unwrap(),
                 pyth_program_pubkey: Pubkey::try_from(PYTH_PROGRAM_DEVNET).unwrap(),
             },
+            keypair: vec![],
         }
     }
 }
@@ -154,6 +159,30 @@ pyth  program account: {} "#,
             self.cluster.ws_url(),
             self.accounts.pyth_program_pubkey,
         );
+    }
+    pub fn get_pyth_btc_pubkey(&self) -> &Pubkey {
+        let p = self
+            .accounts
+            .pyth
+            .get(&bcom::FullPositionMarket::BtcUsd.to_string())
+            .unwrap();
+        p
+    }
+    pub fn get_pyth_eth_pubkey(&self) -> &Pubkey {
+        let p = self
+            .accounts
+            .pyth
+            .get(&bcom::FullPositionMarket::EthUsd.to_string())
+            .unwrap();
+        p
+    }
+    pub fn get_pyth_sol_pubkey(&self) -> &Pubkey {
+        let p = self
+            .accounts
+            .pyth
+            .get(&bcom::FullPositionMarket::SolUsd.to_string())
+            .unwrap();
+        p
     }
     pub fn set(
         &mut self,

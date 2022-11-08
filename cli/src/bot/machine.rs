@@ -5,6 +5,7 @@ use anchor_client::solana_sdk::{account::Account, pubkey::Pubkey};
 use bond::com as bcom;
 use bond::state::{market, position, user};
 // use crossbeam_channel::{self, bounded};
+use chrono::{Datelike, NaiveDate, Utc};
 use dashmap::DashMap;
 use log::{debug, error, info};
 use std::fmt;
@@ -439,10 +440,42 @@ impl Liquidation {
             ts = 10;
         }
         let (shutdown_tx, shutdown_rx) = watch::channel(false);
-        let (task_ch_tx, task_ch_rx) =
-            flume::bounded::<(Pubkey, user::UserAccount, Option<DmPosition>)>(ts);
+        let (task_ch_tx, task_ch_rx) = flume::bounded::<Pubkey>(ts);
+        let (timer_ch_tx, timer_ch_rx) = flume::bounded::<Pubkey>(ts);
         let mut send_shutdown_rx = shutdown_rx.clone();
-        // loop and send
+
+        // The position capital fee is charged every eight hours (fixed at 0:00, 8:00 and 16:00 GMT+0)
+        let tmp = mp.clone();
+        tokio::spawn(async move {
+            let next_run_time = time_to_next_run();
+            let start = time::Instant::now() + time::Duration::from_secs(next_run_time as u64);
+            let mut interval = time::interval_at(start, time::Duration::from_secs(8 * 3600));
+            loop {
+                let i = interval.tick().await;
+                info!(
+                    "The timer is awakened. The current time is: {} ,Run every: {:?}",
+                    Utc::now().format("%Y-%m-%d %H:%M:%S"),
+                    i.elapsed()
+                );
+                let now = time::Instant::now();
+                debug!("Start a new round of funding complete...");
+
+                for v in &tmp.user {
+                    let pubkey = *v.key();
+                    match timer_ch_tx.send(pubkey) {
+                        Ok(()) => {}
+                        Err(e) => {
+                            debug!("timer task msg send error:{},exit send loop !", e);
+                            break;
+                        }
+                    }
+                }
+                let t = now.elapsed();
+                debug!("Complete a new round of funding... use time:{:?}", t);
+            }
+        });
+        // Keep checking position
+        let lmp = mp.clone();
         tokio::spawn(async move {
             loop {
                 tokio::select! {
@@ -454,17 +487,9 @@ impl Liquidation {
                         let now = time::Instant::now();
                         debug!("Start a new round of liquidation...");
 
-                        for v in &mp.user {
+                        for v in &lmp.user {
                             let pubkey = *v.key();
-                            let user_account = (*v.value()).clone();
-                            let positions = match mp.position.get(&pubkey) {
-                                Some(ps) => {
-                                    let v = ps.value();
-                                    Some((*v).clone())
-                                }
-                                None => None,
-                            };
-                           match task_ch_tx.send((pubkey, user_account, positions)){
+                           match task_ch_tx.send(pubkey){
                                 Ok(())=>{}
                                 Err(e)=>{
                                     debug!("task msg send error:{},exit send loop !",e);
@@ -481,9 +506,12 @@ impl Liquidation {
         let mut workers: Vec<JoinHandle<anyhow::Result<()>>> = Vec::with_capacity(ts);
         for _ in 0..ts {
             let cfg = config.clone();
+            let smp = mp.clone();
             workers.push(tokio::spawn(loop_position_by_user(
                 cfg,
+                smp,
                 task_ch_rx.clone(),
+                timer_ch_rx.clone(),
                 shutdown_rx.clone(),
             )));
         }
@@ -500,13 +528,32 @@ impl Liquidation {
         }
     }
 }
+// Return seconds
+fn time_to_next_run() -> i64 {
+    let now = Utc::now().naive_utc();
+    let tv = vec![
+        NaiveDate::from_ymd(now.year(), now.month(), now.day()).and_hms(0, 0, 0),
+        NaiveDate::from_ymd(now.year(), now.month(), now.day()).and_hms(8, 0, 0),
+        NaiveDate::from_ymd(now.year(), now.month(), now.day()).and_hms(16, 0, 0),
+    ];
+    for v in &tv {
+        let ds = v.signed_duration_since(now).num_seconds();
+        if ds > 0 {
+            return ds;
+        }
+    }
+    &tv[0].timestamp() + (3600 * 24) - now.timestamp()
+}
 
 async fn loop_position_by_user(
     config: config::Config,
-    task_rx: flume::Receiver<(Pubkey, user::UserAccount, Option<DmPosition>)>,
+    mp: Arc<StateMap>,
+    task_rx: flume::Receiver<Pubkey>,
+    timer_task_rx: flume::Receiver<Pubkey>,
     mut shutdown_rx: watch::Receiver<bool>,
 ) -> anyhow::Result<()> {
     info!("start position loop program...");
+
     loop {
         tokio::select! {
             _ = shutdown_rx.changed() => {
@@ -514,12 +561,68 @@ async fn loop_position_by_user(
             }
             r = task_rx.recv_async() => {
                 match r {
-                    Ok(rs)=>{
-                        let (pubkey,user_account,position) = rs;
-                        compute_position(&config,&pubkey,&user_account,&position);
+                    Ok(user_pubkey)=>{
+                        match mp.user.get(&user_pubkey){
+                            Some(v)=>{
+                                match mp.position.get(&user_pubkey) {
+                                    Some(ps) => {
+                                        match compute_position(&config,&user_pubkey,&v,&ps.value(),&mp.market,&mp.price_account,&mp.user_dynamic_idx){
+                                            Ok(())=>{
+                                                debug!("loop user {} success!",user_pubkey);
+                                            }
+                                            Err(e)=>{
+                                                debug!("loop user {} error: {}",user_pubkey,e);
+                                            }
+                                        }
+                                    }
+                                    None => {
+                                        debug!("loop user {} positions none,continue!",user_pubkey);
+                                    },
+                                }
+
+                            },
+                            None=>{
+                                debug!("Recv the user pubkey in task ,but get user data none");
+                            }
+                        }
                     }
                     Err(e)=>{
-                        error!("position loop task recv error:{},exit!",e);
+                        info!("position loop task recv error:{},exit!",e);
+                        break;
+                    }
+                }
+            }
+            r = timer_task_rx.recv_async() => {
+                match r {
+                    Ok(user_pubkey)=>{
+                        match mp.user.get(&user_pubkey){
+                            Some(v)=>{
+                                match mp.position.get(&user_pubkey) {
+                                    Some(ps) => {
+                                        match funding_rate_settlement(&config,&user_pubkey,&v,ps.value()){
+                                            Ok(())=>{
+                                                debug!("timer loop user {} success!",user_pubkey);
+                                            }
+                                            Err(e)=>{
+                                                debug!("timer loop user {} error: {}",user_pubkey,e);
+                                            }
+                                        }
+                                    }
+                                    None => {
+                                        debug!("timer loop user {} positions none,continue!",user_pubkey);
+                                    },
+                                };
+
+                            },
+                            None=>{
+                                debug!("Recv the user pubkey in timer task ,but get user data none");
+                                continue;
+                            }
+                        }
+
+                    }
+                    Err(e)=>{
+                        info!("timer position loop task recv error:{},exit!",e);
                         break;
                     }
                 }
@@ -529,27 +632,109 @@ async fn loop_position_by_user(
     Ok(())
 }
 
+fn funding_rate_settlement(
+    config: &config::Config,
+    user_pubkey: &Pubkey,
+    user_account: &user::UserAccount,
+    position: &DmPosition,
+) -> anyhow::Result<()> {
+    debug!("Funding rate settlement: {}", user_pubkey);
+    // todo
+    // let client = com::Context::new_client(config);
+    Ok(())
+}
+
 fn compute_position(
     config: &config::Config,
     user_pubkey: &Pubkey,
     user_account: &user::UserAccount,
-    position: &Option<DmPosition>,
-) {
-    debug!("compute user's position: {}", user_pubkey);
-    let client = com::Context::new_client(config);
-}
-pub fn compute_pl_all_independent_position(
-    config: &config::Config,
-    user_pubkey: &Pubkey,
-    user_account: &user::UserAccount,
-    positions: &DmPosition,
+    position: &DmPosition,
+    market_mp: &DmMarket,
+    price_map: &DmPrice,
+    user_dynamic_idx_mp: &DmUserDynamicData,
 ) -> anyhow::Result<()> {
+    debug!("compute user's position: {}", user_pubkey);
+    let client = com::Context::new_client(config)?;
+    let data_full = compute_pl_all_full_position(
+        config,
+        &client,
+        user_pubkey,
+        user_account,
+        market_mp,
+        price_map,
+    )?;
+    let data_independent =
+        compute_pl_all_independent_position(&client, user_pubkey, position, market_mp, price_map)?;
+    let equity = data_full.equity + data_independent.equity + user_account.balance;
+    let data = UserDynamicData {
+        profit: data_independent.profit + data_full.profit,
+        margin_percentage: bcom::f64_round(equity / user_account.margin_total),
+        equity,
+    };
+    user_dynamic_idx_mp.insert(*user_pubkey, data_independent);
+    Ok(())
+}
+
+pub fn compute_pl_all_independent_position(
+    anchor_client: &anchor_client::Client,
+    user_pubkey: &Pubkey,
+    positions: &DmPosition,
+    market_mp: &DmMarket,
+    price_map: &DmPrice,
+) -> anyhow::Result<UserDynamicData> {
+    let mut data = UserDynamicData::default();
+
     for v in positions {
         if v.position_type == position::PositionType::Full {
             continue;
         }
+        match market_mp.get(&v.market_account) {
+            Some(market) => match price_map.get(&market.pyth_price_account) {
+                Some(price) => {
+                    let pl = v.get_pl_price(price.value());
+                    data.profit += pl;
+                    let total_pl =
+                        pl + market.get_position_fund(v.direction.clone(), v.get_fund_size());
+                    let equity = v.margin + total_pl;
+                    data.equity = equity;
+                    if equity / v.margin < bcom::BURST_RATE {
+                        match client::burst_position(
+                            anchor_client,
+                            *user_pubkey,
+                            *market.key(),
+                            *v.key(),
+                            market.pyth_price_account,
+                            market.chianlink_price_account,
+                        ) {
+                            Ok(()) => {
+                                info!("burst position success! pubkey: {}", v.key());
+                            }
+                            Err(e) => {
+                                error!("burst position success error:{}", e);
+                                continue;
+                            }
+                        }
+                    }
+                }
+                None => {
+                    error!(
+                            "Cannot get price data, continue! position pubkey: {},market_pubkey: {},pyth_price_pubkey: {}",
+                            v.key(),
+                            v.market_account,
+                            market.pyth_price_account
+                        );
+                }
+            },
+            None => {
+                error!(
+                    "Cannot get market data , continue! position pubkey: {},market_pubkey: {}",
+                    v.key(),
+                    v.market_account
+                );
+            }
+        }
     }
-    Ok(())
+    Ok(data)
 }
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct PositionSort {
@@ -672,7 +857,7 @@ pub fn compute_pl_all_full_position(
                             ],
                             &com::id(),
                         );
-                        // let pyth_price_pubkey=v.pyth_price_account
+
                         match client::burst_position(
                             anchor_client,
                             *user_pubkey,

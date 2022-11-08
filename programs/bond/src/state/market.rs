@@ -9,9 +9,9 @@ use num_enum::TryFromPrimitive;
 pub struct Market {
     /// Maximum allowable leverage ratio
     pub max_leverage: u16,
-    /// position management rate
+    /// position management rate, space for future derived values
     pub management_rate: f64,
-    /// transaction rate
+    /// transaction rate , space for future derived values
     pub transaction_rate: f64,
     /// insurance rate
     pub insurance_rate: f64,

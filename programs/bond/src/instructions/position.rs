@@ -276,7 +276,7 @@ pub fn close_position(ctx: Context<ClosePosition>) -> Result<()> {
     if is_robot_operator {
         position_account.position_status = position::PositionStatus::ForceClosing;
     }
-    let total_pl = position_account.get_pl_price(price);
+    let total_pl = position_account.get_pl_price(&price);
     position_account.profit = total_pl;
     position_account.close_price = match position_account.direction {
         position::Direction::Buy => price.sell_price,

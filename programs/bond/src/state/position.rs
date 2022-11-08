@@ -116,7 +116,7 @@ impl PositionHeader {
 impl Position {
     pub const LEN: usize = 4 + 8 + 2 + (1 + 1) * 3 + 8 * 15 + 32 * 4;
     // Floating P/L
-    pub fn get_pl_price(&self, p: market::Price) -> f64 {
+    pub fn get_pl_price(&self, p: &market::Price) -> f64 {
         match self.direction {
             Direction::Buy => {
                 f64_round((p.sell_price - self.open_price) * self.lot as f64 * self.size)

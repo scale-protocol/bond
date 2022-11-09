@@ -633,10 +633,10 @@ async fn loop_position_by_user(
 }
 
 fn funding_rate_settlement(
-    config: &config::Config,
+    _config: &config::Config,
     user_pubkey: &Pubkey,
-    user_account: &user::UserAccount,
-    position: &DmPosition,
+    _user_account: &user::UserAccount,
+    _position: &DmPosition,
 ) -> anyhow::Result<()> {
     debug!("Funding rate settlement: {}", user_pubkey);
     // todo
@@ -671,7 +671,7 @@ fn compute_position(
         margin_percentage: bcom::f64_round(equity / user_account.margin_total),
         equity,
     };
-    user_dynamic_idx_mp.insert(*user_pubkey, data_independent);
+    user_dynamic_idx_mp.insert(*user_pubkey, data);
     Ok(())
 }
 

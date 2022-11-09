@@ -7,7 +7,7 @@ use clap::{arg, Command};
 use log::debug;
 use std::ffi::OsString;
 use std::path::PathBuf;
-fn cli() -> Command {
+fn cli<'help>() -> Command<'help> {
     Command::new("Scale contract command line operator.")
         .about("Scale contract command line operator.More https://www.scale.exchange")
         .version("0.1.0")

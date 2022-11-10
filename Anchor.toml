@@ -2,15 +2,15 @@
 seeds = false
 skip-lint = false
 [programs.localnet]
-bond = "3CuC9qc7ehNu3MrGrqDMu6it2g71dFJTKn7184sb1TuJ"
+bond = "ECte5vr5zJkRVnEPY9XPkgq3JFfFkthrMKxLk6gfa7v4"
 [programs.devnet]
-bond = "3CuC9qc7ehNu3MrGrqDMu6it2g71dFJTKn7184sb1TuJ"
+bond = "ECte5vr5zJkRVnEPY9XPkgq3JFfFkthrMKxLk6gfa7v4"
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
 cluster = "devnet"
-wallet = "/Users/m/.config/solana/id.json"
+wallet = "/root/.config/solana/id.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

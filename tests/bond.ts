@@ -25,7 +25,7 @@ const MARKET_ACCOUNT_SEED = encode("scale_market_account");
 
 const POSITION_ACCOUNT_SEED = encode("scale_position_account");
 
-const VAULT_ACCOUNT = "AShVQFmFX1K74Ww1L2yaZRvmvUa6rAqmPWdoreN6Xato"
+const VAULT_ACCOUNT = "F7NPLGunbG5rmKnYY7opt1SWfgNXRg8LUyoi4LK7wpu4"
 
 
 
@@ -66,7 +66,7 @@ const CHAINLINK_PRICE = {
 }
 
 const MARKET_ACCOUNT = {
-  BTC: "29uUk1SbBfG7N913n8axUowBvsdXJxch2XsqfzXYEEqa",
+  BTC: "",
   ETH: "",
   SOL: "",
 }

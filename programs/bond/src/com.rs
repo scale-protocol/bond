@@ -46,7 +46,7 @@ pub mod base_account {
     }
     /// The team authorized account is used to initialize and set the official trading market
     pub fn get_team_authority() -> Pubkey {
-        Pubkey::try_from("9Q2SWBAXzrFeYu2k8diw1Q9bMD7Qo2pLMyjXU4iLT5iM").unwrap()
+        Pubkey::try_from("DqFNrbXm9qanh2tUh9kURvEyx3PUe8dKDYXvtkBxThXm").unwrap()
     }
 
     pub fn get_pyth_price_account_btc() -> Pubkey {
@@ -68,7 +68,7 @@ pub mod base_account {
         Pubkey::try_from("CcPVS9bqyXbD9cLnTbhhHazLsrua8QMFUHTutPtjyDzq").unwrap()
     }
     pub fn get_clearing_robot() -> Pubkey {
-        Pubkey::try_from("9Q2SWBAXzrFeYu2k8diw1Q9bMD7Qo2pLMyjXU4iLT5iM").unwrap()
+        Pubkey::try_from("DqFNrbXm9qanh2tUh9kURvEyx3PUe8dKDYXvtkBxThXm").unwrap()
     }
 }
 #[cfg(feature = "testnet")]
@@ -89,7 +89,7 @@ pub mod base_account {
     }
     /// The team authorized account is used to initialize and set the official trading market
     pub fn get_team_authority() -> Pubkey {
-        Pubkey::try_from("9Q2SWBAXzrFeYu2k8diw1Q9bMD7Qo2pLMyjXU4iLT5iM").unwrap()
+        Pubkey::try_from("DqFNrbXm9qanh2tUh9kURvEyx3PUe8dKDYXvtkBxThXm").unwrap()
     }
     pub fn get_pyth_price_account_btc() -> Pubkey {
         Pubkey::try_from("DJW6f4ZVqCnpYNN9rNuzqUcCvkVtBgixo8mq9FKSsCbJ").unwrap()
@@ -110,16 +110,16 @@ pub mod base_account {
         Pubkey::try_from("").unwrap()
     }
     pub fn get_clearing_robot() -> Pubkey {
-        Pubkey::try_from("9Q2SWBAXzrFeYu2k8diw1Q9bMD7Qo2pLMyjXU4iLT5iM").unwrap()
+        Pubkey::try_from("DqFNrbXm9qanh2tUh9kURvEyx3PUe8dKDYXvtkBxThXm").unwrap()
     }
 }
-#[cfg(feature = "devnet")]
+#[cfg(any(feature = "devnet", feature = "localhost"))]
 pub mod base_account {
     use super::*;
     /// Mint address of the vault token, the test version is the circulating token issued by the project,
     /// and the official network is USDC
     pub fn get_vault_mint() -> Pubkey {
-        Pubkey::try_from("BKCWDCwVmcS6hP9K7NnFk4UQXJGLDqcBNeqzJ7jJ5xNV").unwrap()
+        Pubkey::try_from("3xJL46KjjDQbPUDg54nEzSC1Ejs49xFHwQJyEMPq7H7g").unwrap()
     }
     /// Address of project development fund wallet
     pub fn get_project_fund_wallet() -> Pubkey {
@@ -131,7 +131,7 @@ pub mod base_account {
     }
     /// The team authorized account is used to initialize and set the official trading market
     pub fn get_team_authority() -> Pubkey {
-        Pubkey::try_from("9Q2SWBAXzrFeYu2k8diw1Q9bMD7Qo2pLMyjXU4iLT5iM").unwrap()
+        Pubkey::try_from("DqFNrbXm9qanh2tUh9kURvEyx3PUe8dKDYXvtkBxThXm").unwrap()
     }
     pub fn get_pyth_price_account_btc() -> Pubkey {
         Pubkey::try_from("HovQMDrbAgAYPCmHVSrezcSmkMtXSSUsLDFANExrZh2J").unwrap()
@@ -152,49 +152,7 @@ pub mod base_account {
         Pubkey::try_from("HgTtcbcmp5BeThax5AU8vg4VwK79qAvAKKFMs8txMLW6").unwrap()
     }
     pub fn get_clearing_robot() -> Pubkey {
-        Pubkey::try_from("9Q2SWBAXzrFeYu2k8diw1Q9bMD7Qo2pLMyjXU4iLT5iM").unwrap()
-    }
-}
-#[cfg(feature = "localhost")]
-pub mod base_account {
-    use super::*;
-    /// Mint address of the vault token, the test version is the circulating token issued by the project,
-    /// and the official network is USDC
-    pub fn get_vault_mint() -> Pubkey {
-        Pubkey::try_from("5Uzq44UgPkPNxG4E4m4m7F8fsnrHKc4jFvFuPapV4jN2").unwrap()
-    }
-    /// Address of project development fund wallet
-    pub fn get_project_fund_wallet() -> Pubkey {
-        Pubkey::try_from("Bu91vdLYSmiip8fS7ijzTcFAnu3TNCUA7kfj2pRMzC9T").unwrap()
-    }
-    /// Insurance fund address
-    pub fn get_insurance_fund_wallet() -> Pubkey {
-        Pubkey::try_from("Bu91vdLYSmiip8fS7ijzTcFAnu3TNCUA7kfj2pRMzC9T").unwrap()
-    }
-    /// The team authorized account is used to initialize and set the official trading market
-    pub fn get_team_authority() -> Pubkey {
-        Pubkey::try_from("9Q2SWBAXzrFeYu2k8diw1Q9bMD7Qo2pLMyjXU4iLT5iM").unwrap()
-    }
-    pub fn get_pyth_price_account_btc() -> Pubkey {
-        Pubkey::try_from("HovQMDrbAgAYPCmHVSrezcSmkMtXSSUsLDFANExrZh2J").unwrap()
-    }
-    pub fn get_pyth_price_account_eth() -> Pubkey {
-        Pubkey::try_from("EdVCmQ9FSPcVe5YySXDPCRmc8aDQLKJ9xvYBMZPie1Vw").unwrap()
-    }
-    pub fn get_pyth_price_account_sol() -> Pubkey {
-        Pubkey::try_from("J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVkix").unwrap()
-    }
-    pub fn get_chainlink_price_account_btc() -> Pubkey {
-        Pubkey::try_from("CzZQBrJCLqjXRfMjRN3fhbxur2QYHUzkpaRwkWsiPqbz").unwrap()
-    }
-    pub fn get_chainlink_price_account_eth() -> Pubkey {
-        Pubkey::try_from("2ypeVyYnZaW2TNYXXTaZq9YhYvnqcjCiifW1C6n8b7Go").unwrap()
-    }
-    pub fn get_chainlink_price_account_sol() -> Pubkey {
-        Pubkey::try_from("HgTtcbcmp5BeThax5AU8vg4VwK79qAvAKKFMs8txMLW6").unwrap()
-    }
-    pub fn get_clearing_robot() -> Pubkey {
-        Pubkey::try_from("9Q2SWBAXzrFeYu2k8diw1Q9bMD7Qo2pLMyjXU4iLT5iM").unwrap()
+        Pubkey::try_from("DqFNrbXm9qanh2tUh9kURvEyx3PUe8dKDYXvtkBxThXm").unwrap()
     }
 }
 

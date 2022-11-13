@@ -1,7 +1,7 @@
 use crate::com::*;
 use crate::state::market;
 use anchor_lang::prelude::*;
-use num_enum::TryFromPrimitive;
+use num_enum::{IntoPrimitive, TryFromPrimitive};
 #[account]
 #[derive(Debug)]
 pub struct Position {
@@ -56,14 +56,18 @@ pub struct Position {
     pub market_account: Pubkey,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, TryFromPrimitive, PartialEq)]
+#[derive(
+    AnchorSerialize, AnchorDeserialize, Clone, Debug, TryFromPrimitive, IntoPrimitive, PartialEq,
+)]
 #[repr(u8)]
 pub enum PositionType {
     Full = 1,
     Independent,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, TryFromPrimitive, PartialEq)]
+#[derive(
+    AnchorSerialize, AnchorDeserialize, Clone, Debug, TryFromPrimitive, IntoPrimitive, PartialEq,
+)]
 #[repr(u8)]
 pub enum PositionStatus {
     Normal = 1,
@@ -78,6 +82,7 @@ pub enum PositionStatus {
     Clone,
     Debug,
     TryFromPrimitive,
+    IntoPrimitive,
     Eq,
     Ord,
     PartialEq,

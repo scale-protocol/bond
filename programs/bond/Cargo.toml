@@ -23,3 +23,4 @@ anchor-lang = "0.25.0"
 anchor-spl="0.25.0"
 num_enum="0.5.7"
 pyth-sdk-solana = "0.6.1"
+serde = { version = "1", features = ["derive"] }

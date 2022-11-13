@@ -1,9 +1,10 @@
 use crate::com::*;
 use crate::state::market;
 use anchor_lang::prelude::*;
-use num_enum::{IntoPrimitive, TryFromPrimitive};
+use num_enum::TryFromPrimitive;
+use serde::{Deserialize, Serialize};
 #[account]
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Position {
     pub position_seed_offset: u32,
     /// Initial position margin
@@ -57,7 +58,14 @@ pub struct Position {
 }
 
 #[derive(
-    AnchorSerialize, AnchorDeserialize, Clone, Debug, TryFromPrimitive, IntoPrimitive, PartialEq,
+    AnchorSerialize,
+    AnchorDeserialize,
+    Clone,
+    Debug,
+    TryFromPrimitive,
+    PartialEq,
+    Deserialize,
+    Serialize,
 )]
 #[repr(u8)]
 pub enum PositionType {
@@ -66,7 +74,14 @@ pub enum PositionType {
 }
 
 #[derive(
-    AnchorSerialize, AnchorDeserialize, Clone, Debug, TryFromPrimitive, IntoPrimitive, PartialEq,
+    AnchorSerialize,
+    AnchorDeserialize,
+    Clone,
+    Debug,
+    TryFromPrimitive,
+    PartialEq,
+    Deserialize,
+    Serialize,
 )]
 #[repr(u8)]
 pub enum PositionStatus {
@@ -82,19 +97,20 @@ pub enum PositionStatus {
     Clone,
     Debug,
     TryFromPrimitive,
-    IntoPrimitive,
     Eq,
     Ord,
     PartialEq,
     PartialOrd,
     Copy,
+    Deserialize,
+    Serialize,
 )]
 #[repr(u8)]
 pub enum Direction {
     Buy = 1,
     Sell,
 }
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, Deserialize, Serialize)]
 pub struct PositionHeader {
     pub position_seed_offset: u32,
     pub open_price: f64,

@@ -9,7 +9,7 @@ bond = "ECte5vr5zJkRVnEPY9XPkgq3JFfFkthrMKxLk6gfa7v4"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
+cluster = "localnet"
 wallet = "/Users/m/.config/solana/id.json"
 
 [scripts]

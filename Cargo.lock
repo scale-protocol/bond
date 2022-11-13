@@ -295,6 +295,7 @@ dependencies = [
  "anchor-spl",
  "num_enum",
  "pyth-sdk-solana",
+ "serde",
 ]
 
 [[package]]

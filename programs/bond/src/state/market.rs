@@ -3,9 +3,10 @@ use crate::price::price;
 use crate::state::position;
 use anchor_lang::prelude::*;
 use num_enum::TryFromPrimitive;
+use serde::{Deserialize, Serialize};
 
 #[account]
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Market {
     /// Maximum allowable leverage ratio
     pub max_leverage: u16,
@@ -120,7 +121,16 @@ impl Market {
         total_funds_allocated * (position_fund_size / min)
     }
 }
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, TryFromPrimitive, PartialEq)]
+#[derive(
+    AnchorSerialize,
+    AnchorDeserialize,
+    Clone,
+    Debug,
+    TryFromPrimitive,
+    PartialEq,
+    Deserialize,
+    Serialize,
+)]
 #[repr(u8)]
 pub enum MarketStatus {
     Normal = 1,

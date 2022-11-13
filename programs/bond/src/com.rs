@@ -1,8 +1,8 @@
 use anchor_lang::prelude::*;
 // use anchor_spl::mint;
+use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::fmt;
-
 /// The exposure ratio should not exceed 70% of the current pool,
 /// so as to avoid the risk that the platform's current pool is empty.
 pub const POSITION_DIFF_PROPORTION: f64 = 0.7;
@@ -156,7 +156,7 @@ pub mod base_account {
     }
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub enum FullPositionMarket {
     BtcUsd = 1,
     EthUsd,

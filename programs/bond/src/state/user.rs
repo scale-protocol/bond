@@ -1,9 +1,9 @@
 use crate::errors::BondError;
 use crate::state::position::*;
 use anchor_lang::prelude::*;
-
+use serde::{Deserialize, Serialize};
 #[account]
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct UserAccount {
     /// Account owner wallet address
     pub authority: Pubkey,

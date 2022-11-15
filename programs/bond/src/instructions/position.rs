@@ -125,6 +125,9 @@ pub fn open_position(
             }
         }
         position::PositionType::Independent => {
+            if user_account.balance < margin {
+                return Err(BondError::InsufficientMargin.into());
+            }
             user_account.margin_independent_total += margin;
             user_account.balance -= margin;
             match position_account.direction {

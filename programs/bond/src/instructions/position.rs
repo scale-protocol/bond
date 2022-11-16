@@ -158,13 +158,13 @@ pub fn open_position(
     }
     // Risk judgment
     if exposure > total_liquidity * com::POSITION_DIFF_PROPORTION {
-        return Err(BondError::RiskControlBlocking.into());
+        return Err(BondError::RiskControlBlockingExposure.into());
     }
     if fund_size > total_liquidity * com::POSITION_PROPORTION_ONE {
-        return Err(BondError::RiskControlBlocking.into());
+        return Err(BondError::RiskControlBlockingFundSize.into());
     }
     if fund_pool > total_liquidity * com::POSITION_PROPORTION {
-        return Err(BondError::RiskControlBlocking.into());
+        return Err(BondError::RiskControlBlockingFundPool.into());
     }
     msg!("create position order by {:?}", pair);
     Ok(())

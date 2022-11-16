@@ -22,8 +22,18 @@ pub enum BondError {
     InvalidPriceAccount,
     #[msg("Illegal instruction parameter, please check it")]
     InvalidParameterOfPosition,
-    #[msg("Risk control, it is not allowed to open new positions")]
-    RiskControlBlocking,
+    #[msg(
+        "Risk control,The exposure ratio should not exceed 70% of the current pool,So as to avoid the risk that the platform's current pool is empty."
+    )]
+    RiskControlBlockingExposure,
+    #[msg(
+        "Risk control,The size of a single position shall not be greater than 20% of the exposure"
+    )]
+    RiskControlBlockingFundSize,
+    #[msg(
+        "Risk control,The proportion of unidirectional positions shall not exceed 150% of the flow pool,So as to avoid the risk of malicious position opening."
+    )]
+    RiskControlBlockingFundPool,
     #[msg("Insufficient margin available")]
     InsufficientMargin,
     #[msg("Insufficient balance to open a new position")]

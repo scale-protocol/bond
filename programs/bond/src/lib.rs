@@ -47,8 +47,8 @@ pub mod bond {
     ) -> Result<()> {
         position::open_position(ctx, pair, size, leverage, position_type, direction)
     }
-    pub fn close_position(ctx: Context<ClosePosition>) -> Result<()> {
-        position::close_position(ctx)
+    pub fn close_position(ctx: Context<ClosePosition>, identity: u8) -> Result<()> {
+        position::close_position(ctx, identity)
     }
     pub fn investment(ctx: Context<Investment>, pair: String, amount: u64) -> Result<()> {
         market::investment(ctx, pair, amount)

@@ -255,7 +255,8 @@ pub struct OpenPosition<'info> {
     system_program: Program<'info, System>,
 }
 
-pub fn close_position(ctx: Context<ClosePosition>) -> Result<()> {
+pub fn close_position(ctx: Context<ClosePosition>, _identity: u8) -> Result<()> {
+    msg!("close position");
     let user_account = &mut ctx.accounts.user_account;
     let market_account = &mut ctx.accounts.market_account;
     let position_account = &mut ctx.accounts.position_account;
@@ -375,6 +376,7 @@ pub fn close_position(ctx: Context<ClosePosition>) -> Result<()> {
         margin: position_account.margin,
         market: com::FullPositionMarket::from(market_account.pair.as_str()),
     });
+    msg!("close position success!");
     Ok(())
 }
 
@@ -391,7 +393,7 @@ pub struct ClosePosition<'info> {
     pub user_account: Account<'info, user::UserAccount>,
     #[account(
         mut,
-        constraint = market_account.key()==position_account.market_account.key()@BondError::AccountNumberNotMatch,
+        constraint = market_account.key() == position_account.market_account.key()@BondError::AccountNumberNotMatch,
     )]
     pub market_account: Box<Account<'info, market::Market>>,
     #[account(
@@ -407,7 +409,7 @@ pub struct ClosePosition<'info> {
     pub pyth_price_account: AccountInfo<'info>,
     /// CHECK: Verify later
     #[account(
-        constraint=market_account.chianlink_price_account.key()==chianlink_price_account.key()@BondError::InvalidPriceAccount)
+        constraint=market_account.chianlink_price_account.key() == chianlink_price_account.key()@BondError::InvalidPriceAccount)
     ]
     pub chianlink_price_account: AccountInfo<'info>,
 }

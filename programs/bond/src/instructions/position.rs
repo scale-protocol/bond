@@ -29,6 +29,7 @@ pub fn open_position(
     if market_account.status != market::MarketStatus::Normal {
         return Err(BondError::MarketPauses.into());
     }
+    let pre_exposure = market_account.get_exposure();
     // set position data
     position_account.position_type =
         position::PositionType::try_from(position_type).map_err(|err| {
@@ -151,15 +152,25 @@ pub fn open_position(
             .margin_full_buy_total
             .max(user_account.margin_full_sell_total),
     );
+
+    // Risk judgment
+    msg!(
+        "exposure: {},total_liquidity: {},pre_exposure: {:?},position_direction: {:?}",
+        exposure,
+        total_liquidity * com::POSITION_DIFF_PROPORTION,
+        pre_exposure,
+        position_account.direction
+    );
+    if exposure > total_liquidity * com::POSITION_DIFF_PROPORTION && pre_exposure <= exposure {
+        return Err(BondError::RiskControlBlockingExposure.into());
+    }
+
     let user_account_equity = get_equity(ctx)?;
     // check margin
     if (user_account_equity / margin_full_total) < com::BURST_RATE {
         return Err(BondError::InsufficientMargin.into());
     }
-    // Risk judgment
-    if exposure > total_liquidity * com::POSITION_DIFF_PROPORTION {
-        return Err(BondError::RiskControlBlockingExposure.into());
-    }
+
     if fund_size > total_liquidity * com::POSITION_PROPORTION_ONE {
         return Err(BondError::RiskControlBlockingFundSize.into());
     }

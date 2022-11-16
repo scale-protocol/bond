@@ -26,7 +26,7 @@ pub struct UserAccount {
     pub margin_full_sell_total: f64,
     pub margin_independent_buy_total: f64,
     pub margin_independent_sell_total: f64,
-    pub position_full_vector: u32,
+    pub position_full_vector: i32,
     /// space for future derived values
     pub drv1: u8,
     /// space for future derived values

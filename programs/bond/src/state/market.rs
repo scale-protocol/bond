@@ -82,6 +82,14 @@ impl Market {
         (self.long_position_total.abs() - self.short_position_total.abs()).abs()
     }
 
+    pub fn get_dominant_direction(&self) -> position::Direction {
+        if self.long_position_total > self.short_position_total {
+            position::Direction::Buy
+        } else {
+            position::Direction::Sell
+        }
+    }
+
     pub fn get_total_liquidity(&self) -> f64 {
         self.vault_base_balance + self.vault_profit_balance
     }

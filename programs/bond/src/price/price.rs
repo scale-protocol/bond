@@ -31,5 +31,5 @@ fn get_price_from_pyth(price_account_info: &AccountInfo) -> Result<f64> {
 
 #[cfg(any(feature = "localhost"))]
 fn get_price_from_pyth(_price_account_info: &AccountInfo) -> Result<f64> {
-    Ok(1.26 * com::DECIMALS)
+    Ok(125.26 * com::DECIMALS)
 }

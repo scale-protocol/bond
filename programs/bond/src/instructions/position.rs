@@ -262,6 +262,9 @@ pub fn close_position(ctx: Context<ClosePosition>) -> Result<()> {
     if market_account.status == market::MarketStatus::Frozen {
         return Err(BondError::MarketFrozen.into());
     }
+    if position_account.position_status != position::PositionStatus::Normal {
+        return Err(BondError::PositionStatusInvalid.into());
+    }
     // check user
     let is_user_operator = user_account.authority == ctx.accounts.authority.key();
     let is_robot_operator = com::base_account::get_clearing_robot() == ctx.accounts.authority.key();
@@ -392,7 +395,8 @@ pub struct ClosePosition<'info> {
     )]
     pub market_account: Box<Account<'info, market::Market>>,
     #[account(
-        seeds=[com::POSITION_ACCOUNT_SEED,user_account.authority.key().as_ref(),user_account.key().as_ref(),user_account.position_seed_offset.to_string().as_bytes().as_ref()],
+        mut,
+        seeds=[com::POSITION_ACCOUNT_SEED,user_account.authority.key().as_ref(),user_account.key().as_ref(),position_account.position_seed_offset.to_string().as_bytes().as_ref()],
         bump,
     )]
     pub position_account: Account<'info, position::Position>,

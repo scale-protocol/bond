@@ -23,7 +23,8 @@ fn get_price_from_pyth(price_account_info: &AccountInfo) -> Result<f64> {
         .get_current_price()
         .ok_or(BondError::GetPriceFailedFromPyth)?;
     let price = com::f64_round(
-        current_price.price as f64 / 10u64.pow(current_price.expo.abs() as u32) as f64,
+        (current_price.price as f64 / 10u64.pow(current_price.expo.abs() as u32) as f64)
+            * com::DECIMALS,
     );
     Ok(price)
 }

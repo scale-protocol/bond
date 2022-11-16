@@ -42,4 +42,6 @@ pub enum BondError {
     NoPermission,
     #[msg("The balance of the treasury is insufficient, and the withdrawal operation cannot be performed temporarily")]
     InsufficientVaultBalance,
+    #[msg("The position status is not supported")]
+    PositionStatusInvalid,
 }

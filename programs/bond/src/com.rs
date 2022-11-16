@@ -24,7 +24,7 @@ pub const VAULT_TOKEN_AUTHORITY_SEED: &[u8] = b"scale_vault_authority";
 pub const USER_ACCOUNT_SEED: &[u8] = b"scale_user_account";
 pub const MARKET_ACCOUNT_SEED: &[u8] = b"scale_market_account";
 pub const POSITION_ACCOUNT_SEED: &[u8] = b"scale_position_account";
-
+pub const DECIMALS: f64 = 1000000.0;
 // pub const PRICE_ACCOUNT:[]
 #[cfg(feature = "mainnet")]
 pub mod base_account {

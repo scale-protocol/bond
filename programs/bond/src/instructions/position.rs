@@ -55,6 +55,7 @@ pub fn open_position(
         &ctx.accounts.pyth_price_account,
         &ctx.accounts.chianlink_price_account,
     )?;
+    msg!("price:{:?}", price);
     let margin = match position_account.direction {
         position::Direction::Buy => com::f64_round(
             size as f64 * price.buy_price / leverage as f64 * market_account.margin_rate,

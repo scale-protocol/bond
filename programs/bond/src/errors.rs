@@ -54,4 +54,6 @@ pub enum BondError {
     InsufficientVaultBalance,
     #[msg("The position status is not supported")]
     PositionStatusInvalid,
+    #[msg("The price is invalid")]
+    PriceError,
 }

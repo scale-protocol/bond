@@ -1,4 +1,5 @@
 use crate::com;
+use crate::errors::BondError;
 use crate::price::price;
 use crate::state::position;
 use anchor_lang::prelude::*;
@@ -70,12 +71,21 @@ impl Market {
         price_account_info_chinalink: &AccountInfo,
     ) -> Result<Price> {
         let p = price::get_price(price_account_info_pyth, price_account_info_chinalink)?;
-        let spread = com::f64_round(p * self.spread);
+
+        // let spread = com::f64_round(p * self.spread);
+        let mut sell_price = p - self.spread;
+        let buy_price = p + self.spread;
+        if p < self.spread {
+            sell_price = 0.0;
+        }
+        if sell_price < 0.0 || buy_price < sell_price {
+            return Err(BondError::PriceError.into());
+        }
         Ok(Price {
-            buy_price: com::f64_round(p + spread),
-            sell_price: com::f64_round(p - spread),
+            buy_price: com::f64_round(buy_price),
+            sell_price: com::f64_round(sell_price),
             real_price: p,
-            spread,
+            spread: self.spread,
         })
     }
     pub fn get_exposure(&self) -> f64 {

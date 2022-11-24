@@ -2,9 +2,9 @@
 seeds = false
 skip-lint = false
 [programs.localnet]
-bond = "ECte5vr5zJkRVnEPY9XPkgq3JFfFkthrMKxLk6gfa7v4"
+bond = "FXUEM9ZfqeWkAtHDCoCGB7C9cwNW1JcyhXB47i9J6B37"
 [programs.devnet]
-bond = "ECte5vr5zJkRVnEPY9XPkgq3JFfFkthrMKxLk6gfa7v4"
+bond = "FXUEM9ZfqeWkAtHDCoCGB7C9cwNW1JcyhXB47i9J6B37"
 [registry]
 url = "https://api.apr.dev"
 
